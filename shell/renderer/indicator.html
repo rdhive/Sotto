@@ -4,35 +4,20 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy"
       content="default-src 'none'; script-src file:; style-src file:; font-src file: data:; img-src file: data:; connect-src 'none'; object-src 'none'; base-uri 'none';">
-<title>Sotto — Recording</title>
+<title>Sotto Recording</title>
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="indicator.css">
 </head>
 <body>
-  <!-- Floating recording indicator. Click-through and never focused: this is
-       a lamp on the front panel, not a window. The window is sized to this
-       content at runtime rather than guessed. -->
+  <!-- Floating recording indicator. Click-through and never focused: it is a
+       status readout, not a window. The window is sized to this content at
+       runtime rather than guessed. -->
   <div class="unit" id="unit" data-state="idle">
-    <div class="section">
-      <span class="lamp" id="lamp"></span>
-      <span id="label">Ready</span>
-    </div>
-
-    <div class="seam"></div>
-
-    <div class="section">
-      <div class="ladder" id="ladder"></div>
-    </div>
-
-    <div class="seam"></div>
-
-    <div class="section">
-      <div class="readout">
-        <span class="ghost">88:88</span>
-        <span class="live" id="counter">00:00</span>
-      </div>
-    </div>
+    <span class="lamp" id="lamp"></span>
+    <span class="label" id="label">Ready</span>
+    <div class="ladder" id="ladder"></div>
+    <span class="counter" id="counter">0:00</span>
   </div>
 
   <script src="indicator.js"></script>

@@ -16,6 +16,9 @@ const ui = {
 
 const DEFAULT_ACCELERATOR = 'CommandOrControl+Shift+D'
 
+// Electron accelerator -> what is printed on the keys.
+const pretty = (a) => String(a || '').replace('CommandOrControl', 'Ctrl').replace(/\+/g, ' + ')
+
 // Push-to-talk has to be a key that is not used for typing, because the
 // engine swallows it while bound. KeyboardEvent.code -> Windows virtual-key.
 const PTT_KEYS = {
@@ -75,7 +78,7 @@ function acceleratorFrom (e) {
 ui.btnCapture.addEventListener('click', () => {
   capturing = true
   ui.btnCapture.classList.add('is-listening')
-  ui.btnCapture.textContent = 'Press a combination…'
+  ui.btnCapture.textContent = 'Press keys…'
   advise(ui.hotkeyAdvice, 'ok', 'Include Ctrl, Alt or Shift. Esc to cancel.')
 })
 
@@ -83,7 +86,7 @@ ui.btnResetHotkey.addEventListener('click', () => applyAccelerator(DEFAULT_ACCEL
 
 async function applyAccelerator (accelerator) {
   const result = await api.setHotkey(accelerator)
-  ui.btnCapture.textContent = result.accelerator
+  ui.btnCapture.textContent = pretty(result.accelerator)
   if (result.registered) {
     advise(ui.hotkeyAdvice, 'ok', 'Registered with Windows.')
   } else {
@@ -162,8 +165,8 @@ function queueSave (patch) {
   clearTimeout(saveTimer)
   saveTimer = setTimeout(async () => {
     const cfg = await api.setConfig(patch)
-    if (cfg) status('Saved')
-    else advise(ui.saveAdvice, 'error', 'Engine is not running — nothing was saved.')
+    if (cfg) { status('Saved'); advise(ui.saveAdvice, null, null) }
+    else advise(ui.saveAdvice, 'error', 'The engine is not running, so nothing was saved.')
   }, 200)
 }
 
@@ -187,20 +190,23 @@ const btnIndicator = $('btnIndicator')
 const engineMode = $('engineMode')
 
 function paintToggle (btn, on) {
-  btn.textContent = on ? 'On' : 'Off'
-  btn.classList.toggle('is-down', on)
+  btn.setAttribute('aria-checked', String(!!on))
 }
+const isOn = (btn) => btn.getAttribute('aria-checked') === 'true'
 
 btnStartup.addEventListener('click', async () => {
-  paintToggle(btnStartup, await api.setStartup(btnStartup.textContent !== 'On'))
+  paintToggle(btnStartup, !isOn(btnStartup))           // move the knob now
+  paintToggle(btnStartup, await api.setStartup(isOn(btnStartup)))
 })
 
 btnIndicator.addEventListener('click', async () => {
-  paintToggle(btnIndicator, await api.setIndicator(btnIndicator.textContent !== 'On'))
+  paintToggle(btnIndicator, !isOn(btnIndicator))
+  paintToggle(btnIndicator, await api.setIndicator(isOn(btnIndicator)))
 })
 
 api.onSupervisor((s) => {
   engineMode.textContent = s.error ? 'Not running' : (s.message || 'Running')
+  engineMode.style.color = s.error ? 'var(--c-danger)' : ''
 })
 
 async function refresh () {
@@ -212,7 +218,7 @@ async function refresh () {
 
   const hk = await api.getHotkey()
   if (hk) {
-    ui.btnCapture.textContent = hk.accelerator
+    ui.btnCapture.textContent = pretty(hk.accelerator)
     if (!hk.registered) advise(ui.hotkeyAdvice, 'error', hk.reason || 'Not registered.')
   }
 
@@ -246,7 +252,7 @@ async function refresh () {
   const options = [new Option('System default', '')]
   for (const d of mics) options.push(new Option(d.label || d.name, d.label || d.name))
   for (const d of loopbacks) {
-    options.push(new Option((d.label || d.name) + '  — system audio, not a mic',
+    options.push(new Option((d.label || d.name) + ' (system audio, not a mic)',
                             d.label || d.name))
   }
 
@@ -256,7 +262,7 @@ async function refresh () {
   // A device saved by an older build may not match any label. Show it
   // rather than silently displaying whatever happens to be first.
   if (cfg.input_device && ui.selDevice.value !== cfg.input_device) {
-    const stray = new Option(cfg.input_device + '  — saved earlier',
+    const stray = new Option(cfg.input_device + ' (saved earlier)',
                              cfg.input_device)
     ui.selDevice.insertBefore(stray, ui.selDevice.options[1] || null)
     ui.selDevice.value = cfg.input_device
@@ -267,7 +273,7 @@ async function refresh () {
 }
 
 api.onHotkey((s) => {
-  ui.btnCapture.textContent = s.accelerator
+  ui.btnCapture.textContent = pretty(s.accelerator)
   if (!s.registered) advise(ui.hotkeyAdvice, 'error', s.reason || 'Not registered.')
 })
 

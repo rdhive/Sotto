@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy"
       content="default-src 'none'; script-src file:; style-src file:; font-src file: data:; img-src file: data:; connect-src 'none'; object-src 'none'; base-uri 'none';">
+<meta name="color-scheme" content="light dark">
 <title>Sotto</title>
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="tokens.css">
@@ -16,130 +17,134 @@
 <header class="titlebar">
   <div class="titlebar-drag">
     <span class="wordmark">Sotto</span>
-    <span class="rule-v"></span>
-    <span class="legend" id="modelBadge">—</span>
+    <span class="titlebar-sub" id="modelBadge"></span>
   </div>
   <div class="titlebar-fixed">
-    <span class="lamp" id="lampRec" title="Recording"></span>
-    <span class="legend">Rec</span>
-    <span class="lamp lamp-green" id="lampLink" title="Engine connection"></span>
-    <span class="legend">Link</span>
+    <span class="status-pill" id="statusPill" data-tone="offline" title="Engine connection">
+      <span class="status-dot"></span><span id="statusPillText">Offline</span>
+    </span>
+    <button class="icon-btn" id="btnSettings" aria-label="Settings" title="Settings">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
   </div>
 </header>
 
-<!-- ============ TRANSPORT DECK ============ -->
-<section class="deck">
-  <div class="deck-transport">
-    <button class="key key-rec" id="btnRecord">
-      <span class="key-dot"></span>Record
-    </button>
-    <button class="key" id="btnStop">Stop</button>
+<!-- ============ RECORDER ============ -->
+<section class="recorder" id="recorder" data-state="offline">
+  <button class="rec-btn" id="btnRecord" aria-label="Start dictation" title="Start dictation">
+    <span class="rec-core"></span>
+  </button>
+
+  <div class="rec-wave">
+    <canvas id="wave" aria-hidden="true"></canvas>
   </div>
 
-  <div class="deck-meter">
-    <div class="meter-well">
-      <canvas id="vu"></canvas>
-    </div>
-    <div class="ladder" id="ladder"></div>
-    <div class="ladder-scale">
-      <span class="micro">-20</span><span class="micro">-10</span>
-      <span class="micro">-3</span><span class="micro">0</span><span class="micro">+6</span>
-    </div>
-  </div>
-
-  <div class="deck-readout">
-    <div class="readout">
-      <div class="readout-stack">
-        <span class="readout-ghost">88:88.8</span>
-        <span class="readout-live" id="counter">00:00.0</span>
-      </div>
-    </div>
-    <div class="readout-legend">
-      <span class="legend" id="stateLabel">Offline</span>
-      <span class="legend" id="langLabel"></span>
-    </div>
+  <div class="rec-readout">
+    <span class="counter" id="counter">0:00.0</span>
+    <span class="rec-state">
+      <span id="stateLabel">Offline</span><span class="rec-lang" id="langLabel"></span>
+    </span>
   </div>
 </section>
 
-<!-- ============ TABS ============ -->
-<nav class="tabs">
-  <button class="tab is-active" data-view="transcriptions">Transcriptions</button>
-  <button class="tab" data-view="dictionary">Dictionary</button>
-  <div class="tabs-spacer"></div>
-  <input type="search" id="search" class="field field-search" placeholder="Search" spellcheck="false">
+<!-- ============ TOOLBAR ============ -->
+<nav class="toolbar">
+  <div class="seg" role="tablist" aria-label="View">
+    <button class="seg-btn tab is-active" role="tab" aria-selected="true" data-view="transcriptions">Transcriptions</button>
+    <button class="seg-btn tab" role="tab" aria-selected="false" data-view="dictionary">Dictionary</button>
+  </div>
+  <div class="spacer"></div>
+  <label class="search">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="search" id="search" placeholder="Search transcriptions" spellcheck="false" aria-label="Search">
+  </label>
 </nav>
 
-<!-- ============ TRANSCRIPTIONS ============ -->
 <main class="stage">
+  <!-- ============ TRANSCRIPTIONS ============ -->
   <section class="view is-active" id="view-transcriptions">
-    <div class="list" id="historyList"></div>
-    <div class="empty" id="historyEmpty">
-      <span class="legend">No transcriptions yet</span>
-      <p class="hint">Hold your dictation key, or press Record.</p>
+    <div class="scroll">
+      <div class="column" id="historyList"></div>
+      <div class="empty" id="historyEmpty">
+        <div class="empty-mark">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+        </div>
+        <h3 id="historyEmptyTitle">No transcriptions yet</h3>
+        <p id="historyEmptyHint">Hold your push-to-talk key and speak, or press the record button above.</p>
+      </div>
     </div>
   </section>
 
   <!-- ============ DICTIONARY ============ -->
   <section class="view" id="view-dictionary">
-    <div class="panel dict-editor">
-      <div class="seg" id="entryType">
-        <button class="seg-btn is-on" data-type="correction">Correction pair</button>
-        <button class="seg-btn" data-type="term">Word or phrase</button>
+    <div class="scroll">
+      <div class="column">
+        <div class="card editor">
+          <div class="editor-head">
+            <h2 class="section-title" id="editorTitle">Add to dictionary</h2>
+            <div class="seg seg-sm" id="entryType">
+              <button class="seg-btn is-on" data-type="correction">Correction</button>
+              <button class="seg-btn" data-type="term">Word or phrase</button>
+            </div>
+          </div>
+
+          <div class="dict-fields" id="fieldsCorrection">
+            <label class="fieldset">
+              <span class="label">When you hear</span>
+              <input class="field" id="inFrom" placeholder="cloud code" spellcheck="false">
+            </label>
+            <span class="arrow" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </span>
+            <label class="fieldset">
+              <span class="label">Write</span>
+              <input class="field" id="inTo" placeholder="Claude Code" spellcheck="false">
+            </label>
+          </div>
+
+          <div class="dict-fields is-hidden" id="fieldsTerm">
+            <label class="fieldset">
+              <span class="label">Word or phrase</span>
+              <input class="field" id="inTerm" placeholder="Anthropic" spellcheck="false">
+            </label>
+          </div>
+
+          <div class="editor-foot">
+            <p class="advice" id="advice" hidden></p>
+            <div class="spacer"></div>
+            <button class="btn btn-plain" id="btnCancelEdit" hidden>Cancel</button>
+            <button class="btn btn-primary" id="btnAdd">Add</button>
+          </div>
+        </div>
+
+        <div class="group-head">
+          <h2 class="section-title">Entries <span class="count" id="dictHeadCount"></span></h2>
+          <div class="file-actions">
+            <button class="link" id="btnOpenFile">Open file</button>
+            <button class="link" id="btnRevealFile">Show in Explorer</button>
+          </div>
+        </div>
+        <div class="card list" id="dictList"></div>
+        <div class="empty empty-inline" id="dictEmpty">
+          <h3>Dictionary is empty</h3>
+          <p>Teach it names and jargon it keeps getting wrong.</p>
+        </div>
+        <p class="footnote">Stored at <code class="path" id="dictPath"></code></p>
       </div>
-
-      <div class="dict-fields" id="fieldsCorrection">
-        <label class="fieldset">
-          <span class="legend">When you hear</span>
-          <input class="field" id="inFrom" placeholder="cloud code" spellcheck="false">
-        </label>
-        <span class="arrow">→</span>
-        <label class="fieldset">
-          <span class="legend">Write</span>
-          <input class="field" id="inTo" placeholder="Claude Code" spellcheck="false">
-        </label>
-      </div>
-
-      <div class="dict-fields is-hidden" id="fieldsTerm">
-        <label class="fieldset fieldset-wide">
-          <span class="legend">Word or phrase</span>
-          <input class="field" id="inTerm" placeholder="Anthropic" spellcheck="false">
-        </label>
-      </div>
-
-      <div class="dict-actions">
-        <button class="key" id="btnAdd">Add</button>
-        <button class="key key-quiet" id="btnCancelEdit" hidden>Cancel</button>
-      </div>
-
-      <div class="advice" id="advice" hidden></div>
-    </div>
-
-    <div class="dict-filebar">
-      <span class="legend">Stored at</span>
-      <code class="path" id="dictPath">—</code>
-      <div class="tabs-spacer"></div>
-      <button class="key key-quiet" id="btnOpenFile">Open file</button>
-      <button class="key key-quiet" id="btnRevealFile">Show in Explorer</button>
-    </div>
-
-    <div class="list" id="dictList"></div>
-    <div class="empty" id="dictEmpty">
-      <span class="legend">Dictionary is empty</span>
-      <p class="hint">Teach it names and jargon it keeps getting wrong.</p>
     </div>
   </section>
 </main>
 
 <!-- ============ STATUS BAR ============ -->
 <footer class="statusbar">
-  <span class="legend" id="engineStatus">Engine offline</span>
-  <span class="rule-v"></span>
-  <span class="legend" id="hotkeyStatus">Shortcut —</span>
-  <div class="tabs-spacer"></div>
-  <span class="legend" id="dictCount">0 entries</span>
+  <span id="engineStatus">Engine offline</span>
+  <span class="sep" aria-hidden="true"></span>
+  <span id="hotkeyStatus">Shortcut</span>
+  <div class="spacer"></div>
+  <span id="dictCount">0 entries</span>
 </footer>
 
-<div class="toast" id="toast" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <script src="app.js"></script>
 </body>

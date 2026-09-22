@@ -1,4 +1,6 @@
-/* Settings window. Layout only — all values come from tokens.css. */
+/* Settings window. Layout only — all values come from tokens.css.
+   Grammar: grouped cards with a title above, one setting per row, label
+   and hint on the left, the control on the right. */
 
 body.settings {
   display: grid;
@@ -7,67 +9,126 @@ body.settings {
 
 .settings-body {
   overflow-y: auto;
-  padding: var(--space-5);
+  padding: var(--space-2) var(--space-5) var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
-}
-.settings-body::-webkit-scrollbar { width: 10px; }
-.settings-body::-webkit-scrollbar-track { background: var(--c-chassis-900); }
-.settings-body::-webkit-scrollbar-thumb {
-  background: var(--c-chassis-500);
-  border-radius: var(--radius-chamfer);
-  box-shadow: inset 0 1px 0 var(--c-edge-lit);
+  gap: var(--space-5);
 }
 
-.group { display: flex; flex-direction: column; gap: var(--space-4); }
-.group-title {
-  font-size: var(--text-legend);
-  text-transform: uppercase;
-  letter-spacing: var(--track-legend);
-  font-weight: var(--weight-bold);
-  color: var(--c-alum-300);
-  padding-bottom: var(--space-2);
-  border-bottom: var(--line-trim);
-}
+.banner { padding: 10px 12px; }
 
-.field-row {
+.s-group { display: flex; flex-direction: column; gap: var(--space-2); }
+.s-title {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--c-text-dim);
+  padding: 0 var(--space-1);
+}
+.s-card { overflow: hidden; }
+
+.s-row {
+  position: relative;
   display: grid;
-  grid-template-columns: 1fr 210px;
+  grid-template-columns: 1fr 236px;
   gap: var(--space-4);
-  align-items: start;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  min-height: 56px;
 }
-.field-label { display: flex; flex-direction: column; gap: 3px; }
-.field-control { display: flex; flex-direction: column; gap: var(--space-2); }
-.field-control .key { justify-content: center; }
+.s-card > * + .s-row::before,
+.s-card > .s-row + .s-advice::before {
+  content: "";
+  position: absolute; top: 0; left: var(--space-4); right: 0;
+  height: 1px;
+  background: var(--c-sep);
+}
+.s-label { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.s-name { font-size: var(--text-base); font-weight: var(--weight-medium); }
+.s-hint { font-size: var(--text-sm); color: var(--c-text-dim); line-height: 1.4; }
+.s-control { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.s-control-inline { flex-direction: row; justify-content: flex-end; align-items: center; gap: var(--space-3); }
+.s-value { font-size: var(--text-base); color: var(--c-text-dim); text-align: right; }
+.s-foot { font-size: var(--text-sm); color: var(--c-text-mute); padding: 0 var(--space-1); line-height: 1.4; }
 
+.s-advice {
+  position: relative;
+  margin: 0 var(--space-4) var(--space-3);
+  max-width: none;
+}
+.s-advice.advice-ok { padding-left: 0; }
+
+.field.mono { font-family: var(--font-mono); font-size: var(--text-sm); }
+
+/* Native select, restyled closed state. The open list is drawn by Windows. */
+.select { position: relative; }
+.select::after {
+  content: "";
+  position: absolute; right: 12px; top: 50%;
+  width: 6px; height: 6px;
+  border-right: 1.6px solid var(--c-text-dim);
+  border-bottom: 1.6px solid var(--c-text-dim);
+  transform: translateY(-70%) rotate(45deg);
+  pointer-events: none;
+}
 select.field {
   appearance: none;
   cursor: pointer;
-  /* The native dropdown list is drawn by Windows in its own colours; only
-     the closed control is ours to style. */
+  padding-right: 30px;
+  text-overflow: ellipsis;
 }
-select.field option { background: var(--c-chassis-700); color: var(--c-text); }
+select.field option { background: var(--c-surface); color: var(--c-text); }
 
-.capture {
+/* Shortcut capture: shown as a keycap, since it IS a key. */
+.keycap {
+  height: 32px;
+  min-width: 96px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-ctl);
+  background: var(--c-bg);
+  box-shadow: inset 0 0 0 1px var(--c-sep), inset 0 -2px 0 var(--c-sep);
   font-family: var(--font-mono);
-  letter-spacing: var(--track-tight);
-  text-transform: none;
-  justify-content: center;
+  font-size: var(--text-sm);
+  color: var(--c-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: box-shadow var(--dur-fast) ease, color var(--dur-fast) ease;
 }
+.s-control > .keycap { align-self: flex-end; }
+.keycap:hover:not(:disabled) { box-shadow: inset 0 0 0 1px var(--c-ring), inset 0 -2px 0 var(--c-ring); }
+.keycap:disabled { opacity: 0.5; cursor: default; }
 .capture.is-listening {
-  color: var(--c-record-lit);
-  box-shadow: var(--shade-pressed);
+  color: var(--c-accent);
+  font-family: var(--font-ui);
+  box-shadow: inset 0 0 0 1.5px var(--c-accent), var(--focus-ring);
 }
 
-.restart-note { text-align: right; }
+/* Switch */
+.switch {
+  width: 42px; height: 24px;
+  border-radius: var(--radius-pill);
+  background: var(--c-surface-3);
+  position: relative;
+  flex: none;
+  transition: background var(--dur-base) var(--ease-out);
+}
+.switch span {
+  position: absolute; top: 2px; left: 2px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #ffffff;
+  box-shadow: var(--shadow-knob);
+  transition: transform var(--dur-base) var(--ease-out);
+}
+.switch[aria-checked="true"] { background: var(--c-accent-fill); }
+.switch[aria-checked="true"] span { transform: translateX(18px); }
+.switch:focus-visible { border-radius: var(--radius-pill); }
 
 .settings-foot {
   display: flex;
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-5);
-  background: var(--c-chassis-900);
-  border-top: var(--line-seam);
-  box-shadow: inset 0 1px 0 var(--c-edge-lit);
+  border-top: 1px solid var(--c-sep);
 }
+.s-status { font-size: var(--text-sm); color: var(--c-text-dim); }

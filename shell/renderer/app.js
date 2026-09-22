@@ -12,14 +12,51 @@ const el = (tag, cls, text) => {
   return n
 }
 
+// Icons are drawn from a fixed set (Feather geometry, one stroke weight) and
+// built as DOM, not innerHTML, so no markup string ever reaches the page.
+const SVG_NS = 'http://www.w3.org/2000/svg'
+const ICONS = {
+  copy: [['rect', { x: 9, y: 9, width: 13, height: 13, rx: 2 }],
+         ['path', { d: 'M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1' }]],
+  trash: [['polyline', { points: '3 6 5 6 21 6' }],
+          ['path', { d: 'M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2' }]],
+  edit: [['path', { d: 'M12 20h9' }],
+         ['path', { d: 'M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z' }]],
+  arrow: [['line', { x1: 5, y1: 12, x2: 19, y2: 12 }], ['polyline', { points: '12 5 19 12 12 19' }]],
+}
+function icon (name, size) {
+  const s = document.createElementNS(SVG_NS, 'svg')
+  for (const [k, v] of Object.entries({
+    width: size || 16, height: size || 16, viewBox: '0 0 24 24', fill: 'none',
+    stroke: 'currentColor', 'stroke-width': 1.9, 'stroke-linecap': 'round',
+    'stroke-linejoin': 'round', 'aria-hidden': 'true',
+  })) s.setAttribute(k, v)
+  for (const [tag, attrs] of ICONS[name]) {
+    const n = document.createElementNS(SVG_NS, tag)
+    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v)
+    s.appendChild(n)
+  }
+  return s
+}
+function iconButton (name, label, cls) {
+  const b = el('button', 'icon-btn' + (cls ? ' ' + cls : ''))
+  b.setAttribute('aria-label', label)
+  b.title = label
+  b.appendChild(icon(name))
+  return b
+}
+
 const ui = {
-  lampRec: $('lampRec'), lampLink: $('lampLink'), modelBadge: $('modelBadge'),
-  btnRecord: $('btnRecord'), btnStop: $('btnStop'),
-  vu: $('vu'), ladder: $('ladder'), counter: $('counter'),
+  statusPill: $('statusPill'), statusPillText: $('statusPillText'),
+  modelBadge: $('modelBadge'), btnSettings: $('btnSettings'),
+  recorder: $('recorder'), btnRecord: $('btnRecord'),
+  wave: $('wave'), counter: $('counter'),
   stateLabel: $('stateLabel'), langLabel: $('langLabel'),
   search: $('search'),
   historyList: $('historyList'), historyEmpty: $('historyEmpty'),
+  historyEmptyTitle: $('historyEmptyTitle'), historyEmptyHint: $('historyEmptyHint'),
   dictList: $('dictList'), dictEmpty: $('dictEmpty'), dictPath: $('dictPath'),
+  dictHeadCount: $('dictHeadCount'), editorTitle: $('editorTitle'),
   entryType: $('entryType'), fieldsCorrection: $('fieldsCorrection'),
   fieldsTerm: $('fieldsTerm'), inFrom: $('inFrom'), inTo: $('inTo'), inTerm: $('inTerm'),
   btnAdd: $('btnAdd'), btnCancelEdit: $('btnCancelEdit'), advice: $('advice'),
@@ -30,137 +67,103 @@ const ui = {
 
 let view = 'transcriptions'
 let engineState = 'offline'
+let connected = false
 let entryType = 'correction'
 let editingId = null
 let recordStartedAt = 0
 
 // ==========================================================================
-// METERS
+// LEVEL + WAVEFORM
 // ==========================================================================
 // Audio level events only move a target. Integration and drawing happen once
 // per animation frame, so a burst of level messages never causes a re-render.
+// The integrated level is sampled into a scrolling waveform, Voice Memos
+// style: newest bar on the right, the last take stays visible after stop.
 
+// Live object: re-reading it each frame picks up a light/dark switch.
 const css = getComputedStyle(document.documentElement)
 const tok = (n) => css.getPropertyValue(n).trim()
 const ATTACK = parseFloat(tok('--vu-attack-ms')) || 12
 const DECAY = parseFloat(tok('--vu-decay-ms')) || 300
 const HOLD = parseFloat(tok('--vu-peak-hold-ms')) || 900
 const FALL = parseFloat(tok('--vu-peak-fall-ms')) || 1400
+const SAMPLE_MS = parseFloat(tok('--wave-sample-ms')) || 50
 
 let target = 0, needle = 0, peak = 0, peakAt = 0, clock = 0, lastFrame = 0
+let sampleClock = 0
+let samples = []          // 0..1, oldest first
+let waveW = 0, waveH = 0
 
-const LADDER_N = 28
-const segs = []
-for (let i = 0; i < LADDER_N; i++) {
-  const s = el('i')
-  segs.push(s)
-  ui.ladder.appendChild(s)
-}
-function segColour (i) {
-  const v = i / (LADDER_N - 1)
-  if (v > 0.86) return tok('--c-vu-peak')
-  if (v > 0.72) return tok('--c-vu-amber')
-  return tok('--c-vu-green')
-}
+const BAR_W = 3, BAR_GAP = 2
 
-const ctx = ui.vu.getContext('2d')
-let vuW = 0, vuH = 0
+const ctx = ui.wave.getContext('2d')
 
-function sizeVu () {
+function sizeWave () {
   const dpr = window.devicePixelRatio || 1
-  const rect = ui.vu.getBoundingClientRect()
-  vuW = rect.width; vuH = rect.height
-  ui.vu.width = Math.max(1, Math.round(vuW * dpr))
-  ui.vu.height = Math.max(1, Math.round(vuH * dpr))
+  const rect = ui.wave.getBoundingClientRect()
+  waveW = rect.width; waveH = rect.height
+  ui.wave.width = Math.max(1, Math.round(waveW * dpr))
+  ui.wave.height = Math.max(1, Math.round(waveH * dpr))
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 }
 
-function drawVu () {
-  if (!vuW) return
-  const pad = 10
-  ctx.clearRect(0, 0, vuW, vuH)
+function drawWave () {
+  if (!waveW) return
+  ctx.clearRect(0, 0, waveW, waveH)
+  const slots = Math.floor((waveW + BAR_GAP) / (BAR_W + BAR_GAP))
+  const mid = waveH / 2
+  const live = engineState === 'recording'
+  const ink = tok('--c-wave')
+  const idle = tok('--c-wave-idle')
+  const shown = samples.slice(-slots)
+  const offset = slots - shown.length
 
-  ctx.fillStyle = tok('--c-vu-face')
-  ctx.fillRect(0, 0, vuW, vuH)
-  const g = ctx.createLinearGradient(0, 0, 0, vuH)
-  g.addColorStop(0, 'rgba(0,0,0,0.10)')
-  g.addColorStop(0.35, 'rgba(0,0,0,0)')
-  g.addColorStop(1, 'rgba(0,0,0,0.16)')
-  ctx.fillStyle = g
-  ctx.fillRect(0, 0, vuW, vuH)
-
-  const cx = vuW / 2, cy = vuH + 46, R = vuH + 18
-  const A0 = -Math.PI * 0.80, A1 = -Math.PI * 0.20
-  const ang = (v) => A0 + (A1 - A0) * Math.max(0, Math.min(1, v))
-
-  ctx.lineWidth = 1.4
-  ctx.strokeStyle = tok('--c-vu-ink')
-  ctx.beginPath(); ctx.arc(cx, cy, R - pad, A0, A1); ctx.stroke()
-
-  ctx.lineWidth = 3.5
-  ctx.strokeStyle = tok('--c-vu-peak')
-  ctx.beginPath(); ctx.arc(cx, cy, R - pad - 4, ang(0.72), A1); ctx.stroke()
-
-  ctx.font = '600 8px ' + tok('--font-legend')
-  ctx.textAlign = 'center'
-  ctx.fillStyle = tok('--c-vu-ink')
-  for (const [v, label] of [[0, '-20'], [0.2, '-10'], [0.42, '-5'],
-                            [0.58, '-3'], [0.72, '0'], [0.87, '+3'], [1, '+6']]) {
-    const a = ang(v), sx = Math.cos(a), sy = Math.sin(a)
-    ctx.lineWidth = 1.4
-    ctx.strokeStyle = tok('--c-vu-ink')
-    ctx.beginPath()
-    ctx.moveTo(cx + sx * (R - pad), cy + sy * (R - pad))
-    ctx.lineTo(cx + sx * (R - pad - 7), cy + sy * (R - pad - 7))
-    ctx.stroke()
-    ctx.fillText(label, cx + sx * (R - pad - 16), cy + sy * (R - pad - 16) + 3)
+  // Baseline dots for the empty part of the track.
+  ctx.fillStyle = idle
+  for (let i = 0; i < offset; i++) {
+    const x = i * (BAR_W + BAR_GAP)
+    ctx.beginPath(); ctx.arc(x + BAR_W / 2, mid, 1, 0, Math.PI * 2); ctx.fill()
   }
-  ctx.font = '600 7px ' + tok('--font-legend')
-  ctx.fillText('V U', cx, cy - R + 52)
 
-  const pa = ang(peak)
-  ctx.strokeStyle = tok('--c-vu-peak')
-  ctx.lineWidth = 2
-  ctx.beginPath()
-  ctx.moveTo(cx + Math.cos(pa) * (R - pad - 1), cy + Math.sin(pa) * (R - pad - 1))
-  ctx.lineTo(cx + Math.cos(pa) * (R - pad - 7), cy + Math.sin(pa) * (R - pad - 7))
-  ctx.stroke()
+  ctx.fillStyle = live ? ink : idle
+  for (let i = 0; i < shown.length; i++) {
+    // A gentle curve lifts quiet speech without flattening peaks.
+    const v = Math.pow(shown[i], 0.7)
+    const h = Math.max(2, v * (waveH - 4))
+    const x = (offset + i) * (BAR_W + BAR_GAP)
+    roundRect(x, mid - h / 2, BAR_W, h, BAR_W / 2)
+  }
 
-  const na = ang(needle)
-  ctx.strokeStyle = 'rgba(0,0,0,0.15)'
-  ctx.lineWidth = 3
-  ctx.lineCap = 'round'
-  ctx.beginPath()
-  ctx.moveTo(cx + 2, cy + 2)
-  ctx.lineTo(cx + Math.cos(na) * (R - pad - 11) + 2, cy + Math.sin(na) * (R - pad - 11) + 2)
-  ctx.stroke()
-  ctx.strokeStyle = tok('--c-vu-needle')
-  ctx.lineWidth = 1.8
-  ctx.beginPath()
-  ctx.moveTo(cx, cy)
-  ctx.lineTo(cx + Math.cos(na) * (R - pad - 11), cy + Math.sin(na) * (R - pad - 11))
-  ctx.stroke()
+  // Live playhead at the newest bar.
+  if (live) {
+    ctx.fillStyle = tok('--c-record')
+    const x = Math.min(waveW - 2, (offset + shown.length) * (BAR_W + BAR_GAP) - BAR_GAP)
+    ctx.fillRect(x, 4, 1.5, waveH - 8)
+  }
 }
 
-function drawLadder () {
-  const lit = Math.round(needle * LADDER_N)
-  const peakSeg = Math.round(peak * LADDER_N)
-  for (let i = 0; i < LADDER_N; i++) {
-    const on = i < lit || i === peakSeg - 1
-    const c = segColour(i)
-    segs[i].style.background = on ? c : tok('--c-led-off')
-    segs[i].style.boxShadow = on
-      ? '0 0 3px ' + c + ', inset 0 1px 1px rgba(0,0,0,.35)'
-      : 'inset 0 1px 1px rgba(0,0,0,.6)'
-  }
+function roundRect (x, y, w, h, r) {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.arcTo(x + w, y, x + w, y + h, r)
+  ctx.arcTo(x + w, y + h, x, y + h, r)
+  ctx.arcTo(x, y + h, x, y, r)
+  ctx.arcTo(x, y, x + w, y, r)
+  ctx.fill()
+}
+
+function fmtElapsed (ms) {
+  const s = Math.max(0, ms) / 1000
+  const m = Math.floor(s / 60)
+  return m + ':' + (s % 60).toFixed(1).padStart(4, '0')
 }
 
 function frame (now) {
   const dt = Math.min(64, now - (lastFrame || now))
   lastFrame = now
 
-  // Separate attack and decay constants are what give a moving-coil meter
-  // its weight. A single lerp reads as twitchy.
+  // Separate attack and decay constants give the level its weight. A single
+  // lerp reads as twitchy.
   const k = target > needle
     ? 1 - Math.exp(-dt / ATTACK)
     : 1 - Math.exp(-dt / DECAY)
@@ -172,19 +175,21 @@ function frame (now) {
 
   if (engineState !== 'recording') target = 0
 
-  drawVu()
-  drawLadder()
-
   if (engineState === 'recording') {
-    const s = (Date.now() - recordStartedAt) / 1000
-    ui.counter.textContent =
-      String(Math.floor(s / 60)).padStart(2, '0') + ':' +
-      (s % 60).toFixed(1).padStart(4, '0')
+    sampleClock += dt
+    while (sampleClock >= SAMPLE_MS) {
+      sampleClock -= SAMPLE_MS
+      samples.push(Math.max(needle, 0.02))
+      if (samples.length > 2000) samples.splice(0, samples.length - 2000)
+    }
+    ui.counter.textContent = fmtElapsed(Date.now() - recordStartedAt)
   }
+
+  drawWave()
   requestAnimationFrame(frame)
 }
 
-window.addEventListener('resize', sizeVu)
+window.addEventListener('resize', sizeWave)
 
 // ==========================================================================
 // STATE
@@ -193,6 +198,20 @@ const STATE_LABEL = {
   loading: 'Warming up', idle: 'Ready', recording: 'Recording',
   transcribing: 'Transcribing', polishing: 'Polishing',
   injecting: 'Inserting', error: 'Error', offline: 'Offline',
+}
+const WORKING = new Set(['transcribing', 'polishing', 'injecting', 'loading'])
+
+function paintPill () {
+  let tone = 'offline'
+  if (!connected) tone = supervisorError ? 'bad' : 'offline'
+  else if (engineState === 'recording') tone = 'recording'
+  else if (engineState === 'error') tone = 'bad'
+  else if (WORKING.has(engineState)) tone = 'busy'
+  else tone = 'ready'
+  ui.statusPill.dataset.tone = tone
+  ui.statusPillText.textContent = connected
+    ? (STATE_LABEL[engineState] || engineState)
+    : (supervisorError ? 'Engine stopped' : (supervisorMessage ? 'Starting' : 'Offline'))
 }
 
 function setState (state) {
@@ -204,25 +223,30 @@ function setState (state) {
     setTimeout(() => {
       if (engineState === 'loading') {
         ui.engineStatus.textContent =
-          'Preparing — first run downloads the speech model (about 1.6 GB)'
-        ui.engineStatus.className = 'legend status-warn'
+          'Preparing. The first run downloads the speech model (about 1.6 GB).'
+        ui.engineStatus.className = 'status-warn'
       }
     }, 8000)
   }
   if (state !== 'loading') loadingSince = 0
   ui.stateLabel.textContent = STATE_LABEL[state] || state
+  ui.recorder.dataset.state = WORKING.has(state) && state !== 'loading' ? 'working' : state
 
   const rec = state === 'recording'
-  ui.lampRec.classList.toggle('on', rec)
-  ui.btnRecord.classList.toggle('is-armed', rec)
-  ui.btnRecord.disabled = rec || state === 'offline' || state === 'loading'
-  ui.btnStop.disabled = !rec
+  ui.btnRecord.disabled = state === 'offline' || state === 'loading'
+  const label = rec ? 'Stop dictation' : 'Start dictation'
+  ui.btnRecord.setAttribute('aria-label', label)
+  ui.btnRecord.title = label
 
   if (rec && was !== 'recording') {
     recordStartedAt = Date.now()
     peak = 0
+    samples = []
+    sampleClock = 0
+    ui.counter.textContent = fmtElapsed(0)
   }
   if (!rec && was === 'recording') target = 0
+  paintPill()
 }
 
 // Errors can carry a log tail; the status bar shows the headline and
@@ -233,84 +257,98 @@ let supervisorMessage = null
 let supervisorError = null
 let loadingSince = 0
 
-function setConnection (connected) {
-  ui.lampLink.classList.toggle('on', connected)
-  if (!connected) setState('offline')
-  paintEngineStatus(connected)
+function setConnection (isConnected) {
+  connected = isConnected
+  if (!isConnected) setState('offline')
+  paintEngineStatus(isConnected)
+  paintPill()
 }
 
-function paintEngineStatus (connected) {
+function paintEngineStatus (isConnected) {
   // While the engine is starting, the supervisor has more to say than
   // "offline" - and on a first run that wait is minutes, not seconds.
   if (supervisorError) {
     ui.engineStatus.textContent = firstLine(supervisorError)
-    ui.engineStatus.className = 'legend status-bad'
+    ui.engineStatus.className = 'status-bad'
     ui.engineStatus.title = supervisorError
     return
   }
-  if (!connected && supervisorMessage) {
+  if (!isConnected && supervisorMessage) {
     ui.engineStatus.textContent = supervisorMessage
-    ui.engineStatus.className = 'legend status-warn'
+    ui.engineStatus.className = 'status-warn'
     ui.engineStatus.title = ''
     return
   }
-  ui.engineStatus.textContent = connected ? 'Engine connected' : 'Engine offline'
-  ui.engineStatus.className = 'legend' + (connected ? '' : ' status-bad')
+  ui.engineStatus.textContent = isConnected ? 'Engine connected' : 'Engine offline'
+  ui.engineStatus.className = isConnected ? '' : 'status-bad'
   ui.engineStatus.title = ''
 }
 
 function toast (message) {
   ui.toast.textContent = message
   ui.toast.hidden = false
+  // Restart the entrance animation for back-to-back toasts.
+  ui.toast.style.animation = 'none'
+  void ui.toast.offsetWidth
+  ui.toast.style.animation = ''
   clearTimeout(toast._t)
-  toast._t = setTimeout(() => { ui.toast.hidden = true }, 1600)
+  toast._t = setTimeout(() => { ui.toast.hidden = true }, 1800)
 }
 
 // ==========================================================================
 // TRANSCRIPTIONS
 // ==========================================================================
-function timeLabel (iso) {
-  const d = new Date(iso)
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) +
-         ' · ' + d.toLocaleDateString([], { day: '2-digit', month: 'short' })
+function dayKey (d) { return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate() }
+
+function dayLabel (d) {
+  const today = new Date()
+  const yesterday = new Date(); yesterday.setDate(today.getDate() - 1)
+  if (dayKey(d) === dayKey(today)) return 'Today'
+  if (dayKey(d) === dayKey(yesterday)) return 'Yesterday'
+  const sameYear = d.getFullYear() === today.getFullYear()
+  return d.toLocaleDateString([], {
+    weekday: 'long', day: 'numeric', month: 'long', year: sameYear ? undefined : 'numeric',
+  })
 }
 
 function historyRow (entry) {
   const row = el('div', 'row')
 
-  const main = el('div')
+  const main = el('div', 'row-main')
   main.appendChild(el('div', 'row-text', entry.text))
 
   const meta = el('div', 'row-meta')
-  meta.appendChild(el('span', 'badge', timeLabel(entry.at)))
-  if (entry.language) meta.appendChild(el('span', 'badge', entry.language))
-  if (entry.latencyMs) meta.appendChild(el('span', 'badge', entry.latencyMs + ' ms'))
+  const d = new Date(entry.at)
+  const parts = [d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })]
+  if (entry.language) parts.push(entry.language.toUpperCase())
+  if (entry.latencyMs) parts.push(entry.latencyMs + ' ms')
+  parts.forEach((p, i) => {
+    if (i) meta.appendChild(el('span', 'dot'))
+    meta.appendChild(el('span', '', p))
+  })
 
   // Show what the dictionary changed, so it is obvious whether it is
   // earning its keep.
   if (entry.corrections && entry.corrections.length) {
-    meta.appendChild(el('span', 'badge badge-fix',
-      entry.corrections.length + (entry.corrections.length === 1 ? ' fix' : ' fixes')))
     for (const c of entry.corrections) {
-      const d = el('span', 'fix-detail')
-      const from = el('s'); from.textContent = c.from
-      const to = el('b'); to.textContent = c.to
-      d.appendChild(from)
-      d.appendChild(document.createTextNode(' → '))
-      d.appendChild(to)
-      meta.appendChild(d)
+      const f = el('span', 'fix')
+      f.title = 'Dictionary correction'
+      f.appendChild(el('s', '', c.from))
+      f.appendChild(icon('arrow', 11))
+      f.appendChild(el('b', '', c.to))
+      meta.appendChild(f)
     }
   }
   main.appendChild(meta)
   row.appendChild(main)
 
   const actions = el('div', 'row-actions')
-  const copy = el('button', 'key key-quiet', 'Copy')
+  const copy = iconButton('copy', 'Copy')
   copy.addEventListener('click', async () => {
     await api.copy(entry.text)
     toast('Copied')
   })
-  const del = el('button', 'key key-quiet', 'Delete')
+  const del = iconButton('trash', 'Delete', 'danger')
   del.addEventListener('click', async () => {
     await api.history.remove(entry.id)
     renderHistory()
@@ -324,7 +362,28 @@ function historyRow (entry) {
 async function renderHistory () {
   const query = view === 'transcriptions' ? ui.search.value : ''
   const entries = await api.history.list(query)
-  ui.historyList.replaceChildren(...entries.map(historyRow))
+
+  const nodes = []
+  let currentKey = null, card = null
+  for (const entry of entries) {
+    const d = new Date(entry.at)
+    const key = dayKey(d)
+    if (key !== currentKey) {
+      currentKey = key
+      const head = el('div', 'group-head')
+      head.appendChild(el('h2', 'day-title', dayLabel(d)))
+      card = el('div', 'card list')
+      nodes.push(head, card)
+    }
+    card.appendChild(historyRow(entry))
+  }
+  ui.historyList.replaceChildren(...nodes)
+
+  const searching = !!query.trim()
+  ui.historyEmptyTitle.textContent = searching ? 'No matches' : 'No transcriptions yet'
+  ui.historyEmptyHint.textContent = searching
+    ? 'Nothing you have dictated contains "' + query.trim() + '".'
+    : 'Hold your push-to-talk key and speak, or press the record button above.'
   ui.historyEmpty.classList.toggle('is-on', entries.length === 0)
 }
 
@@ -332,29 +391,28 @@ async function renderHistory () {
 // DICTIONARY
 // ==========================================================================
 function dictRow (entry) {
-  const row = el('div', 'row')
-  const main = el('div')
+  const row = el('div', 'row dict-row')
+  const main = el('div', 'row-main')
 
+  const pair = el('div', 'dict-pair')
   if (entry.type === 'correction') {
-    const pair = el('div', 'dict-pair')
-    pair.appendChild(el('span', 'legend', 'Hear'))
     pair.appendChild(el('span', 'dict-from', entry.from))
-    pair.appendChild(el('span', 'legend', 'Write'))
+    pair.appendChild(icon('arrow', 14))
     pair.appendChild(el('span', 'dict-to', entry.to))
-    main.appendChild(pair)
   } else {
-    const pair = el('div', 'dict-pair')
-    pair.appendChild(el('span', 'legend', 'Knows'))
     pair.appendChild(el('span', 'dict-term', entry.term))
-    main.appendChild(pair)
   }
+  main.appendChild(pair)
+  main.appendChild(el('div', 'dict-kind',
+    entry.type === 'correction' ? 'Correction' : 'Word or phrase'))
   row.appendChild(main)
 
   const actions = el('div', 'row-actions')
-  const edit = el('button', 'key key-quiet', 'Edit')
+  const edit = iconButton('edit', 'Edit')
   edit.addEventListener('click', () => beginEdit(entry))
-  const del = el('button', 'key key-quiet', 'Delete')
+  const del = iconButton('trash', 'Delete', 'danger')
   del.addEventListener('click', async () => {
+    if (editingId === entry.id) endEdit()
     await api.dictionary.remove(entry.id)
     renderDictionary()
   })
@@ -369,9 +427,15 @@ async function renderDictionary () {
   const entries = await api.dictionary.list(query)
   ui.dictList.replaceChildren(...entries.map(dictRow))
   ui.dictEmpty.classList.toggle('is-on', entries.length === 0)
+  ui.dictEmpty.querySelector('h3').textContent =
+    query.trim() ? 'No matches' : 'Dictionary is empty'
+  ui.dictEmpty.querySelector('p').textContent = query.trim()
+    ? 'No entry contains "' + query.trim() + '".'
+    : 'Teach it names and jargon it keeps getting wrong.'
 
   const all = await api.dictionary.list('')
   ui.dictCount.textContent = all.length + (all.length === 1 ? ' entry' : ' entries')
+  ui.dictHeadCount.textContent = all.length ? String(all.length) : ''
 }
 
 function setEntryType (type) {
@@ -395,8 +459,11 @@ function beginEdit (entry) {
     ui.inTerm.value = entry.term
     ui.inTerm.focus()
   }
+  ui.editorTitle.textContent = 'Edit entry'
   ui.btnAdd.textContent = 'Save'
   ui.btnCancelEdit.hidden = false
+  checkAdvice()
+  ui.inFrom.closest('.scroll').scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 function endEdit () {
@@ -404,6 +471,7 @@ function endEdit () {
   ui.inFrom.value = ''
   ui.inTo.value = ''
   ui.inTerm.value = ''
+  ui.editorTitle.textContent = 'Add to dictionary'
   ui.btnAdd.textContent = 'Add'
   ui.btnCancelEdit.hidden = true
   showAdvice(null)
@@ -431,7 +499,7 @@ function checkAdvice () {
     if (parts.length > 1) {
       showAdvice({
         level: 'ok',
-        message: `Will also catch "${parts.join('')}" and "${parts.join('-')}".`,
+        message: `Also catches "${parts.join('')}" and "${parts.join('-')}".`,
       })
     } else {
       showAdvice({ level: 'ok', message: `Matches "${from}" as a whole word only.` })
@@ -443,20 +511,29 @@ async function submitEntry () {
   if (entryType === 'correction') {
     const from = ui.inFrom.value.trim()
     const to = ui.inTo.value.trim()
-    if (!from || !to) { toast('Both fields are required'); return }
+    if (!from || !to) {
+      showAdvice({ level: 'error', message: 'Fill in both what you say and what to write.' })
+      ;(from ? ui.inTo : ui.inFrom).focus()
+      return
+    }
     const risk = await api.dictionary.assess(from)
     if (risk && risk.level === 'error') { showAdvice(risk); return }
     if (editingId) await api.dictionary.update(editingId, { from, to })
     else await api.dictionary.add({ type: 'correction', from, to })
   } else {
     const term = ui.inTerm.value.trim()
-    if (!term) { toast('Enter a word or phrase'); return }
+    if (!term) {
+      showAdvice({ level: 'error', message: 'Enter a word or phrase.' })
+      ui.inTerm.focus()
+      return
+    }
     if (editingId) await api.dictionary.update(editingId, { term })
     else await api.dictionary.add({ type: 'term', term })
   }
+  const wasEditing = !!editingId
   endEdit()
   renderDictionary()
-  toast('Dictionary updated')
+  toast(wasEditing ? 'Entry saved' : 'Added to dictionary')
 }
 
 // ==========================================================================
@@ -465,7 +542,9 @@ async function submitEntry () {
 function showView (next) {
   view = next
   for (const t of document.querySelectorAll('.tab')) {
-    t.classList.toggle('is-active', t.dataset.view === next)
+    const on = t.dataset.view === next
+    t.classList.toggle('is-active', on)
+    t.setAttribute('aria-selected', String(on))
   }
   for (const v of document.querySelectorAll('.view')) {
     v.classList.toggle('is-active', v.id === 'view-' + next)
@@ -474,14 +553,17 @@ function showView (next) {
   ui.search.placeholder = next === 'dictionary' ? 'Search dictionary' : 'Search transcriptions'
   renderHistory()
   renderDictionary()
-  sizeVu()
+  sizeWave()
 }
 
 // ==========================================================================
 // WIRING
 // ==========================================================================
-ui.btnRecord.addEventListener('click', () => api.start())
-ui.btnStop.addEventListener('click', () => api.stop())
+ui.btnRecord.addEventListener('click', () => {
+  if (engineState === 'recording') api.stop()
+  else api.start()
+})
+ui.btnSettings.addEventListener('click', () => api.openSettings())
 ui.btnAdd.addEventListener('click', submitEntry)
 ui.btnCancelEdit.addEventListener('click', endEdit)
 ui.btnOpenFile.addEventListener('click', () => api.dictionary.openFile())
@@ -489,7 +571,10 @@ ui.btnRevealFile.addEventListener('click', () => api.dictionary.revealFile())
 
 ui.inFrom.addEventListener('input', checkAdvice)
 for (const input of [ui.inFrom, ui.inTo, ui.inTerm]) {
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitEntry() })
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submitEntry()
+    if (e.key === 'Escape' && editingId) endEdit()
+  })
 }
 
 ui.entryType.addEventListener('click', (e) => {
@@ -506,10 +591,20 @@ ui.search.addEventListener('input', () => {
   else renderHistory()
 })
 
+// Ctrl+F focuses search, as in any list app.
+window.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+    e.preventDefault()
+    ui.search.focus()
+    ui.search.select()
+  }
+})
+
 api.onSupervisor((s) => {
   supervisorMessage = s.message
   supervisorError = s.error
   paintEngineStatus(engineState !== 'offline')
+  paintPill()
 })
 api.onState((e) => setState(e.state))
 api.onLevel((e) => { target = Math.max(0, Math.min(1, e.value)) })
@@ -519,7 +614,7 @@ api.onError((e) => toast(e.message || 'Engine error'))
 api.onWarning((e) => toast(e.message || 'Warning'))
 api.onResult((entry) => {
   renderHistory()
-  ui.langLabel.textContent = entry.language || ''
+  ui.langLabel.textContent = entry.language ? entry.language.toUpperCase() : ''
   if (entry.corrections && entry.corrections.length) {
     toast(entry.corrections.length + ' correction' +
           (entry.corrections.length === 1 ? '' : 's') + ' applied')
@@ -529,26 +624,29 @@ api.history.onChanged(() => renderHistory())
 api.dictionary.onChanged(() => renderDictionary())
 api.onView((e) => showView(e.view))
 
-api.onHotkey((status) => {
+function paintHotkey (status) {
   if (status.registered) {
-    ui.hotkeyStatus.textContent = 'Shortcut ' + status.accelerator
+    ui.hotkeyStatus.textContent = 'Shortcut ' + prettyAccel(status.accelerator)
     ui.hotkeyStatus.classList.remove('status-bad')
     ui.hotkeyStatus.title = ''
   } else {
-    ui.hotkeyStatus.textContent = 'Shortcut unavailable — ' + status.accelerator + ' is taken'
+    ui.hotkeyStatus.textContent = 'Shortcut unavailable: ' + prettyAccel(status.accelerator) + ' is taken'
     ui.hotkeyStatus.classList.add('status-bad')
     ui.hotkeyStatus.title = status.reason || ''
   }
-})
+}
+const prettyAccel = (a) => String(a || '').replace('CommandOrControl', 'Ctrl').replace(/\+/g, ' + ')
+api.onHotkey(paintHotkey)
 
 // ==========================================================================
 // BOOT
 // ==========================================================================
 async function boot () {
-  sizeVu()
+  sizeWave()
   requestAnimationFrame(frame)
 
   ui.dictPath.textContent = await api.dictionary.filePath()
+  ui.dictPath.title = ui.dictPath.textContent
 
   const sup = await api.supervisor()
   if (sup) { supervisorMessage = sup.message; supervisorError = sup.error }
@@ -558,12 +656,7 @@ async function boot () {
   if (status.connected) setState(status.state)
 
   const hk = await api.getHotkey()
-  if (hk) {
-    ui.hotkeyStatus.textContent = hk.registered
-      ? 'Shortcut ' + hk.accelerator
-      : 'Shortcut unavailable — ' + hk.accelerator + ' is taken'
-    ui.hotkeyStatus.classList.toggle('status-bad', !hk.registered)
-  }
+  if (hk) paintHotkey(hk)
 
   const cfg = await api.getConfig()
   if (cfg) ui.modelBadge.textContent = cfg.stt_model

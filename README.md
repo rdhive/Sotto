@@ -50,7 +50,7 @@ shell/
     window-state.js  geometry persistence
   renderer/
     tokens.css       the design system — every value in the UI
-    fonts.css        bundled Archivo / DSEG7 / JetBrains Mono
+    fonts.css        bundled JetBrains Mono (UI uses the system face)
     index.html       main window
     settings.html    settings window
 ```
@@ -123,13 +123,20 @@ cd shell && npm test
 
 ## Design
 
-`renderer/tokens.css` is the whole design system — colour, type scale,
-spacing, radius, border, shadow, motion. Components pull from it; no
-literal values in views. Fixed appearance: the app does not follow the
-Windows light/dark theme.
+`renderer/tokens.css` is the whole design system: colour, type scale,
+spacing, radius, elevation, motion. Components pull from it; no literal
+values in views. The reference is Apple's product language (the `apple`
+DESIGN.md from awesome-design-md): neutral surfaces, grouped cards, one
+interactive blue, and red reserved for "capturing your voice".
 
-Fonts are bundled (80 KB total), so nothing is fetched at runtime and the
-look does not shift with system font settings.
+The app follows the Windows light/dark setting. Every colour token has a
+dark counterpart, and `main.js` repaints the native title bar buttons when
+the setting changes. The floating recording indicator is always dark so it
+reads over any application.
+
+UI text uses the system face (Segoe UI Variable on Windows 11). Only
+JetBrains Mono is bundled, for dictionary patterns and shortcut keycaps.
+Nothing is fetched at runtime.
 
 ## Notes
 

@@ -21,26 +21,25 @@ const FALL = parseFloat(tok('--vu-peak-fall-ms')) || 1400
 // drop shadow.
 const SHADOW_PAD = 14
 
-const N = 20
+const N = 22
 const segs = []
 for (let i = 0; i < N; i++) {
   const s = document.createElement('i')
   segs.push(s)
   ladder.appendChild(s)
 }
-function segColour (i) {
-  const v = i / (N - 1)
-  if (v > 0.85) return tok('--c-vu-peak')
-  if (v > 0.70) return tok('--c-vu-amber')
-  return tok('--c-vu-green')
-}
+// A short scrolling waveform: one bar per sample, newest on the right.
+const SAMPLE_MS = parseFloat(tok('--wave-sample-ms')) || 50
+const MAX_H = 20
+let history = new Array(N).fill(0)
+let sampleClock = 0
 
 const WORKING = new Set(['transcribing', 'polishing', 'injecting'])
 const LABEL = {
   idle: 'Ready',
-  recording: 'Rec',
-  transcribing: 'Working',
-  polishing: 'Working',
+  recording: 'Listening',
+  transcribing: 'Transcribing',
+  polishing: 'Polishing',
   injecting: 'Inserting',
 }
 
@@ -59,7 +58,8 @@ function setState (next) {
   if (next === 'recording' && !wasRecording) {
     startedAt = Date.now()
     peak = 0
-    counter.textContent = '00:00'
+    history = new Array(N).fill(0)
+    counter.textContent = '0:00'
   }
   if (next !== 'recording') target = 0
 }
@@ -79,21 +79,24 @@ function frame (now) {
   if (needle >= peak) { peak = needle; peakAt = clock }
   else if (clock - peakAt > HOLD) peak = Math.max(needle, peak - dt / FALL)
 
-  const lit = Math.round(needle * N)
-  const peakSeg = Math.round(peak * N)
+  if (state === 'recording') {
+    sampleClock += dt
+    while (sampleClock >= SAMPLE_MS) {
+      sampleClock -= SAMPLE_MS
+      history.push(needle)
+      history.shift()
+    }
+  }
   for (let i = 0; i < N; i++) {
-    const on = i < lit || i === peakSeg - 1
-    const c = segColour(i)
-    segs[i].style.background = on ? c : tok('--c-led-off')
-    segs[i].style.boxShadow = on
-      ? '0 0 3px ' + c + ', inset 0 1px 1px rgba(0,0,0,.3)'
-      : 'inset 0 1px 1px rgba(0,0,0,.7)'
+    const v = Math.pow(history[i], 0.7)
+    segs[i].style.height = Math.max(3, Math.round(v * MAX_H)) + 'px'
+    segs[i].style.opacity = state === 'recording' ? String(0.45 + 0.55 * Math.min(1, v * 1.6)) : '0.3'
   }
 
   if (state === 'recording') {
     const s = Math.floor((Date.now() - startedAt) / 1000)
     counter.textContent =
-      String(Math.floor(s / 60)).padStart(2, '0') + ':' +
+      Math.floor(s / 60) + ':' +
       String(s % 60).padStart(2, '0')
   }
 

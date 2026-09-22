@@ -13,7 +13,7 @@
 
 const {
   app, BrowserWindow, Menu, Tray, ipcMain, shell, clipboard,
-  globalShortcut, nativeImage, dialog, screen,
+  globalShortcut, nativeImage, dialog, screen, nativeTheme,
 } = require('electron')
 const fs = require('fs')
 const path = require('path')
@@ -29,10 +29,23 @@ const CORE_HOST = '127.0.0.1'
 const CORE_PORT = 8765
 const DEFAULT_ACCELERATOR = 'CommandOrControl+Shift+D'
 
-// Chassis colours from tokens.css. The native title bar buttons are drawn
-// by Windows, so they have to be told the panel colour explicitly.
-const TITLEBAR_BG = '#1a1917'
-const TITLEBAR_FG = '#c2bdae'
+// Window canvas colours from tokens.css (--c-bg / --c-text). The native
+// title bar buttons are drawn by Windows, so they have to be told the colour
+// explicitly, and told again when the Windows light/dark setting changes.
+const CHROME = {
+  light: { bg: '#f5f5f7', fg: '#1d1d1f' },
+  dark: { bg: '#161618', fg: '#f5f5f7' },
+}
+const chrome = () => CHROME[nativeTheme.shouldUseDarkColors ? 'dark' : 'light']
+const titleBarOverlay = () => ({ color: chrome().bg, symbolColor: chrome().fg, height: 38 })
+
+nativeTheme.on('updated', () => {
+  for (const win of [mainWindow, settingsWindow]) {
+    if (!win || win.isDestroyed()) continue
+    win.setBackgroundColor(chrome().bg)
+    try { win.setTitleBarOverlay(titleBarOverlay()) } catch (err) { /* not fatal */ }
+  }
+})
 
 // Windows uses this to group taskbar buttons and to bind pinned shortcuts
 // to the running app. Without it a pinned icon spawns a second entry.
@@ -101,17 +114,13 @@ function createMainWindow () {
     minWidth: 720,
     minHeight: 480,
     show: false,                    // shown on ready-to-show, not kept hidden
-    backgroundColor: TITLEBAR_BG,
-    // Frameless for the custom chassis, but with the real overlay so Snap
+    backgroundColor: chrome().bg,
+    // Frameless for the custom title bar, but with the real overlay so Snap
     // Layouts still appear on hover over maximize. A hand-drawn title bar
     // would break window snapping, which is not a trade worth making.
     frame: false,
     titleBarStyle: 'hidden',
-    titleBarOverlay: {
-      color: TITLEBAR_BG,
-      symbolColor: TITLEBAR_FG,
-      height: 38,
-    },
+    titleBarOverlay: titleBarOverlay(),
     icon: path.join(__dirname, '..', 'assets', 'icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -175,17 +184,17 @@ function openSettings () {
   }
   settingsWindow = new BrowserWindow({
     width: 560,
-    height: 620,
+    height: 720,
     parent: mainWindow || undefined,
     modal: false,
     resizable: true,
     minimizable: false,
     maximizable: false,
     show: false,
-    backgroundColor: TITLEBAR_BG,
+    backgroundColor: chrome().bg,
     frame: false,
     titleBarStyle: 'hidden',
-    titleBarOverlay: { color: TITLEBAR_BG, symbolColor: TITLEBAR_FG, height: 38 },
+    titleBarOverlay: titleBarOverlay(),
     icon: path.join(__dirname, '..', 'assets', 'icon.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
