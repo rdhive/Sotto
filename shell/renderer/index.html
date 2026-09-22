@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src file:; style-src file:; font-src file: data:; img-src file: data:; connect-src 'none'; object-src 'none'; base-uri 'none';">
+<title>Sotto</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<!-- Drag region. Kept to 38px to match titleBarOverlay, with the right side
+     left clear for the native window controls Windows draws there. -->
+<header class="titlebar">
+  <div class="titlebar-drag">
+    <span class="wordmark">Sotto</span>
+    <span class="rule-v"></span>
+    <span class="legend" id="modelBadge">—</span>
+  </div>
+  <div class="titlebar-fixed">
+    <span class="lamp" id="lampRec" title="Recording"></span>
+    <span class="legend">Rec</span>
+    <span class="lamp lamp-green" id="lampLink" title="Engine connection"></span>
+    <span class="legend">Link</span>
+  </div>
+</header>
+
+<!-- ============ TRANSPORT DECK ============ -->
+<section class="deck">
+  <div class="deck-transport">
+    <button class="key key-rec" id="btnRecord">
+      <span class="key-dot"></span>Record
+    </button>
+    <button class="key" id="btnStop">Stop</button>
+  </div>
+
+  <div class="deck-meter">
+    <div class="meter-well">
+      <canvas id="vu"></canvas>
+    </div>
+    <div class="ladder" id="ladder"></div>
+    <div class="ladder-scale">
+      <span class="micro">-20</span><span class="micro">-10</span>
+      <span class="micro">-3</span><span class="micro">0</span><span class="micro">+6</span>
+    </div>
+  </div>
+
+  <div class="deck-readout">
+    <div class="readout">
+      <div class="readout-stack">
+        <span class="readout-ghost">88:88.8</span>
+        <span class="readout-live" id="counter">00:00.0</span>
+      </div>
+    </div>
+    <div class="readout-legend">
+      <span class="legend" id="stateLabel">Offline</span>
+      <span class="legend" id="langLabel"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TABS ============ -->
+<nav class="tabs">
+  <button class="tab is-active" data-view="transcriptions">Transcriptions</button>
+  <button class="tab" data-view="dictionary">Dictionary</button>
+  <div class="tabs-spacer"></div>
+  <input type="search" id="search" class="field field-search" placeholder="Search" spellcheck="false">
+</nav>
+
+<!-- ============ TRANSCRIPTIONS ============ -->
+<main class="stage">
+  <section class="view is-active" id="view-transcriptions">
+    <div class="list" id="historyList"></div>
+    <div class="empty" id="historyEmpty">
+      <span class="legend">No transcriptions yet</span>
+      <p class="hint">Hold your dictation key, or press Record.</p>
+    </div>
+  </section>
+
+  <!-- ============ DICTIONARY ============ -->
+  <section class="view" id="view-dictionary">
+    <div class="panel dict-editor">
+      <div class="seg" id="entryType">
+        <button class="seg-btn is-on" data-type="correction">Correction pair</button>
+        <button class="seg-btn" data-type="term">Word or phrase</button>
+      </div>
+
+      <div class="dict-fields" id="fieldsCorrection">
+        <label class="fieldset">
+          <span class="legend">When you hear</span>
+          <input class="field" id="inFrom" placeholder="cloud code" spellcheck="false">
+        </label>
+        <span class="arrow">→</span>
+        <label class="fieldset">
+          <span class="legend">Write</span>
+          <input class="field" id="inTo" placeholder="Claude Code" spellcheck="false">
+        </label>
+      </div>
+
+      <div class="dict-fields is-hidden" id="fieldsTerm">
+        <label class="fieldset fieldset-wide">
+          <span class="legend">Word or phrase</span>
+          <input class="field" id="inTerm" placeholder="Anthropic" spellcheck="false">
+        </label>
+      </div>
+
+      <div class="dict-actions">
+        <button class="key" id="btnAdd">Add</button>
+        <button class="key key-quiet" id="btnCancelEdit" hidden>Cancel</button>
+      </div>
+
+      <div class="advice" id="advice" hidden></div>
+    </div>
+
+    <div class="dict-filebar">
+      <span class="legend">Stored at</span>
+      <code class="path" id="dictPath">—</code>
+      <div class="tabs-spacer"></div>
+      <button class="key key-quiet" id="btnOpenFile">Open file</button>
+      <button class="key key-quiet" id="btnRevealFile">Show in Explorer</button>
+    </div>
+
+    <div class="list" id="dictList"></div>
+    <div class="empty" id="dictEmpty">
+      <span class="legend">Dictionary is empty</span>
+      <p class="hint">Teach it names and jargon it keeps getting wrong.</p>
+    </div>
+  </section>
+</main>
+
+<!-- ============ STATUS BAR ============ -->
+<footer class="statusbar">
+  <span class="legend" id="engineStatus">Engine offline</span>
+  <span class="rule-v"></span>
+  <span class="legend" id="hotkeyStatus">Shortcut —</span>
+  <div class="tabs-spacer"></div>
+  <span class="legend" id="dictCount">0 entries</span>
+</footer>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+{
+  "name": "sotto",
+  "productName": "Sotto",
+  "version": "0.1.0",
+  "description": "Local push-to-talk dictation",
+  "author": {
+    "name": "Redouan Ahaddad",
+    "email": "redouan.ahaddad@rdhive.be"
+  },
+  "license": "UNLICENSED",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "test": "node electron/_test-dictionary.js",
+    "icon": "python assets/make-icon.py",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^32.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "be.rdhive.sotto",
+    "productName": "Sotto",
+    "copyright": "Copyright © 2026 Redouan Ahaddad",
+    "directories": {
+      "output": "../dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "electron/**/*",
+      "renderer/**/*",
+      "assets/**/*",
+      "!**/_*",
+      "!assets/make-icon.py",
+      "!**/*.map"
+    ],
+    "extraResources": [
+      {
+        "from": "engine-dist/engine",
+        "to": "engine",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico",
+      "artifactName": "Sotto-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Sotto",
+      "menuCategory": false,
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}

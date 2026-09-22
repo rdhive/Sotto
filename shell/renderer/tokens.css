@@ -1,0 +1,264 @@
+/* ============================================================
+   SOTTO — DESIGN TOKENS
+   Reference: portable field recorders and cassette decks of the
+   late 70s / early 80s. Sony TC-D5M, Marantz PMD-430, Nakamichi
+   BX, Braun studio components.
+
+   Rules for anyone editing views:
+     - Components pull from these tokens. No literal values.
+     - Fixed appearance. No prefers-color-scheme, no theming.
+     - Hard edges. Radius is for machined chamfers, not softness.
+     - Depth comes from stacked inset highlight + cast shadow,
+       never from a coloured glow.
+   ============================================================ */
+
+:root {
+
+  /* --- COLOR ------------------------------------------------
+     Warm neutrals only. Every grey carries a little yellow so
+     the chassis reads as painted metal under tungsten light,
+     not as blue-grey plastic.                                */
+
+  /* Chassis — the body of the machine, darkest to lightest */
+  --c-chassis-900: #100f0e;   /* recesses, meter wells, insets   */
+  --c-chassis-800: #1a1917;   /* app background                  */
+  --c-chassis-700: #232220;   /* raised panel                    */
+  --c-chassis-600: #2c2b27;   /* control surface, list rows      */
+  --c-chassis-500: #38362f;   /* hover / lifted plastic          */
+
+  /* Aluminium — trim, bezels, brushed faces */
+  --c-alum-600:    #5c5a52;   /* dark edge of a bevel            */
+  --c-alum-500:    #7a786e;   /* brushed face, mid               */
+  --c-alum-400:    #97948a;   /* brushed face, lit               */
+  --c-alum-300:    #b5b2a6;   /* polished highlight              */
+  --c-alum-200:    #cdc9bb;   /* bright machined edge            */
+
+  /* Bone — silkscreened legends and primary type */
+  --c-bone-100:    #e7e2d4;   /* primary text, printed legend    */
+  --c-bone-200:    #c2bdae;   /* secondary text                  */
+  --c-bone-300:    #918d80;   /* tertiary, disabled legend       */
+
+  /* Accent — exactly one. The record lamp. */
+  --c-record:      #c0392b;
+  --c-record-lit:  #e0503f;   /* lamp energised                  */
+  --c-record-dim:  #3d1a15;   /* lamp cold - a dark LED behind red   */
+
+  /* Instrumentation — meters only, never UI chrome */
+  --c-vu-green:    #7d9e4e;
+  --c-vu-amber:    #d29b38;
+  --c-vu-peak:     #c0392b;
+  --c-vu-face:     #d8d2bd;   /* the cream meter faceplate       */
+  --c-vu-ink:      #26241f;   /* printed scale on the faceplate  */
+  --c-vu-needle:   #1c1a17;
+
+  /* Semantic */
+  --c-bg:          var(--c-chassis-800);
+  --c-panel:       var(--c-chassis-700);
+  --c-surface:     var(--c-chassis-600);
+  --c-text:        var(--c-bone-100);
+  --c-text-dim:    var(--c-bone-200);
+  --c-text-mute:   var(--c-bone-300);
+  --c-seam:        #000000;   /* the gap between two panels      */
+  --c-edge-lit:    rgba(255, 250, 235, 0.09);  /* top chamfer    */
+  --c-edge-dark:   rgba(0, 0, 0, 0.55);        /* bottom chamfer */
+
+
+  /* --- TYPE -------------------------------------------------
+     Two families. A neutral grotesque for every legend, and a
+     seven-segment face for counters, because that is what the
+     hardware actually used. Both bundled — see fonts.css.     */
+
+  --font-legend: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-segment: "DSEG7 Classic", "JetBrains Mono", monospace;
+  --font-mono:   "JetBrains Mono", Consolas, monospace;
+
+  /* Silkscreen legends are small, uppercase and widely tracked.
+     The size scale is deliberately short — equipment panels do
+     not have six levels of hierarchy.                          */
+  --text-micro:  9px;    /* unit suffixes, meter scale numbers  */
+  --text-legend: 10px;   /* the standard printed label          */
+  --text-sm:     12px;   /* dense data, list metadata           */
+  --text-base:   13px;   /* transcript body                     */
+  --text-lg:     15px;   /* panel heading                       */
+  --text-counter: 30px;  /* the LCD time counter                */
+
+  --track-legend: 0.14em;  /* uppercase legends                 */
+  --track-tight:  0.02em;
+  --track-none:   0;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-bold:   600;
+
+  --leading-tight: 1.15;
+  --leading-body:  1.55;
+
+
+  /* --- SPACING ----------------------------------------------
+     4px base. Panels butt against each other on the grid so
+     seams line up across the whole face.                      */
+
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  24px;
+  --space-6:  32px;
+  --space-7:  48px;
+  --space-8:  64px;
+
+
+  /* --- RADIUS -----------------------------------------------
+     Machined chamfers, not rounded corners. Nothing above 4px
+     except the transport buttons, which were moulded.         */
+
+  --radius-none:   0;
+  --radius-chamfer: 2px;   /* panels, wells, inputs             */
+  --radius-key:     3px;   /* pushbuttons                       */
+  --radius-moulded: 5px;   /* the large transport keys          */
+
+
+  /* --- BORDER -----------------------------------------------
+     A seam is a black gap with a lit edge above it. That pair
+     is what makes two surfaces read as separate parts.        */
+
+  --border-hair:  1px;
+  --border-seam:  2px;
+
+  --line-seam:    var(--border-hair) solid var(--c-seam);
+  --line-trim:    var(--border-hair) solid var(--c-alum-600);
+  --line-inset:   var(--border-hair) solid rgba(0, 0, 0, 0.6);
+
+
+  /* --- SHADOW / DEPTH ---------------------------------------
+     Three states, used consistently:
+       raised  — a part standing proud of the chassis
+       inset   — a well cut into the chassis
+       pressed — a raised part pushed in                       */
+
+  --shade-raised:
+    inset 0 1px 0 var(--c-edge-lit),
+    inset 0 -1px 0 var(--c-edge-dark),
+    0 1px 2px rgba(0, 0, 0, 0.5),
+    0 2px 6px rgba(0, 0, 0, 0.35);
+
+  --shade-pressed:
+    inset 0 2px 4px rgba(0, 0, 0, 0.6),
+    inset 0 -1px 0 var(--c-edge-lit);
+
+  --shade-inset:
+    inset 0 2px 5px rgba(0, 0, 0, 0.65),
+    inset 0 -1px 0 var(--c-edge-lit);
+
+  --shade-panel:
+    inset 0 1px 0 var(--c-edge-lit),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+
+  /* The record lamp is the only thing permitted to emit light,
+     and it stays tight — a bulb behind plastic, not a neon.   */
+  --shade-lamp:
+    0 0 4px rgba(224, 80, 63, 0.55),
+    0 0 10px rgba(224, 80, 63, 0.28);
+
+  /* Brushed metal. Fine directional grain, very low contrast. */
+  --tex-brushed: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.030) 0px,
+    rgba(255, 255, 255, 0.030) 1px,
+    rgba(0, 0, 0, 0.030) 1px,
+    rgba(0, 0, 0, 0.030) 2px
+  );
+
+  /* Matte plastic. Almost flat, just enough to catch a top light. */
+  --tex-matte: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.045) 0%,
+    rgba(255, 255, 255, 0.000) 42%,
+    rgba(0, 0, 0, 0.10) 100%
+  );
+
+
+  /* --- MOTION -----------------------------------------------
+     Mechanical, not animated. A key travels and stops. Nothing
+     eases lazily, nothing bounces.                            */
+
+  --dur-key:    60ms;    /* a button going down                 */
+  --dur-lamp:   90ms;    /* a lamp lighting                     */
+  --dur-panel:  180ms;   /* a view changing                     */
+
+  --ease-key:   cubic-bezier(0.3, 0.0, 0.2, 1);
+  --ease-panel: cubic-bezier(0.2, 0.8, 0.25, 1);
+
+  /* VU ballistics. These are real instrument constants, not
+     taste: a standard VU integrates over ~300ms, which is why
+     it feels weighted instead of twitchy. Peak indicators hold
+     so a transient stays readable.                            */
+  --vu-attack-ms:     12;
+  --vu-decay-ms:      300;
+  --vu-peak-hold-ms:  900;
+  --vu-peak-fall-ms:  1400;
+
+  /* --- READOUT ----------------------------------------------
+     LED and LCD display wells. This is the one place light is
+     emitted, because the hardware genuinely emitted it. Kept
+     tight and inside a recessed well - a lit segment behind a
+     filter, never a glow on loose text.                       */
+
+  --c-readout-bg:    #0a0b09;   /* the black behind the filter  */
+  --c-readout-amber: #f0a830;   /* lit segment                  */
+  --c-readout-ghost: #3a2a12;   /* unlit segment, still visible */
+  --c-readout-green: #86c452;   /* alternate lamp colour        */
+
+  --shade-readout:   0 0 5px rgba(240, 168, 48, 0.30);
+  --shade-well:
+    inset 0 3px 8px rgba(0, 0, 0, 0.85),
+    inset 0 0 24px rgba(0, 0, 0, 0.55),
+    inset 0 -1px 0 var(--c-edge-lit);
+
+  /* Fine horizontal ruling across a display face. At 3px pitch
+     it reads as filter texture, not as a CRT effect.          */
+  --tex-scanline: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.26) 0px,
+    rgba(0, 0, 0, 0.26) 1px,
+    rgba(0, 0, 0, 0.00) 1px,
+    rgba(0, 0, 0, 0.00) 3px
+  );
+
+  /* --- LED LADDER -------------------------------------------
+     The segmented bar meter that sat next to the needle on
+     later decks.                                              */
+  --c-led-off:   #1e211b;
+  --led-seg-w:   9px;
+  --led-seg-h:   16px;
+  --led-seg-gap: 3px;
+
+  /* --- HARDWARE ---------------------------------------------
+     Fasteners, vents and knurling. Used sparingly - one or two
+     per view, at real structural positions, never as pattern. */
+
+  /* Legend stamped into metal rather than printed on it. */
+  --shade-engraved:
+    0 1px 0 rgba(255, 250, 235, 0.13),
+    0 -1px 0 rgba(0, 0, 0, 0.60);
+
+  /* Ventilation slots milled into a panel. */
+  --tex-vent: repeating-linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.00) 0px,
+    rgba(0, 0, 0, 0.00) 3px,
+    rgba(0, 0, 0, 0.48) 3px,
+    rgba(0, 0, 0, 0.48) 5px
+  );
+
+  /* Knurled grip on a rotary control. */
+  --tex-knurl: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.10) 0px,
+    rgba(255, 255, 255, 0.10) 1px,
+    rgba(0, 0, 0, 0.22) 1px,
+    rgba(0, 0, 0, 0.22) 4px
+  );
+
+  --size-screw: 11px;
+}

@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+node_modules/
+dist/
+build/
+*.log
+shell/engine-dist/
+build/
+
+# local UI backup; the 0.1.0 design lives in git history
+_backup-ui-*/

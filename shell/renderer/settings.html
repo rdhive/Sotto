@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src file:; style-src file:; font-src file: data:; img-src file: data:; connect-src 'none'; object-src 'none'; base-uri 'none';">
+<title>Sotto — Settings</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="app.css">
+<link rel="stylesheet" href="settings.css">
+</head>
+<body class="settings">
+
+<header class="titlebar">
+  <div class="titlebar-drag">
+    <span class="wordmark">Settings</span>
+  </div>
+</header>
+
+<main class="settings-body">
+
+  <!-- ---- HOTKEY ---- -->
+  <section class="group">
+    <h2 class="group-title">Shortcut</h2>
+
+    <div class="field-row">
+      <div class="field-label">
+        <span class="legend">Global toggle</span>
+        <p class="hint">Starts and stops dictation from any application.</p>
+      </div>
+      <div class="field-control">
+        <button class="key capture" id="btnCapture">—</button>
+        <button class="key key-quiet" id="btnResetHotkey">Reset</button>
+      </div>
+    </div>
+    <div class="advice" id="hotkeyAdvice" hidden></div>
+
+    <div class="field-row">
+      <div class="field-label">
+        <span class="legend">Push to talk</span>
+        <p class="hint">Held down to dictate. Handled by the engine, so it
+          works even when Sotto is not running in the foreground.</p>
+      </div>
+      <div class="field-control">
+        <button class="key capture" id="btnPtt">—</button>
+      </div>
+    </div>
+    <div class="advice" id="pttAdvice" hidden></div>
+  </section>
+
+  <!-- ---- MODELS ---- -->
+  <section class="group">
+    <h2 class="group-title">Model</h2>
+
+    <div class="field-row">
+      <div class="field-label">
+        <span class="legend">Speech</span>
+        <p class="hint">Larger is more accurate and slower.</p>
+      </div>
+      <div class="field-control">
+        <select class="field" id="selStt">
+          <option value="large-v3-turbo">large-v3-turbo — fast, recommended</option>
+          <option value="large-v3">large-v3 — most accurate</option>
+          <option value="medium">medium</option>
+          <option value="small">small — lowest latency</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field-label">
+        <span class="legend">Language</span>
+        <p class="hint">Pinning one is faster and avoids misdetection on
+          short clips.</p>
+      </div>
+      <div class="field-control">
+        <select class="field" id="selLang">
+          <option value="">Detect automatically</option>
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+          <option value="nl">Nederlands</option>
+          <option value="de">Deutsch</option>
+          <option value="es">Español</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field-label">
+        <span class="legend">Cleanup</span>
+        <p class="hint">Removes fillers and restores punctuation. Use a
+          non-reasoning instruct model — reasoning models emit their
+          working out as the answer.</p>
+      </div>
+      <div class="field-control">
+        <select class="field" id="selPolish">
+          <option value="ollama">Local model</option>
+          <option value="rules">Rules only</option>
+          <option value="off">Off</option>
+        </select>
+        <input class="field" id="inPolishModel" spellcheck="false"
+               placeholder="qwen2.5:3b-instruct">
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field-label">
+        <span class="legend">Microphone</span>
+        <p class="hint">Avoid anything named loop-back — that is system
+          audio, not your voice.</p>
+      </div>
+      <div class="field-control">
+        <select class="field" id="selDevice"></select>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---- APPLICATION ---- -->
+  <section class="group">
+    <h2 class="group-title">Application</h2>
+
+    <div class="field-row">
+      <div class="field-label">
+        <span class="legend">Start with Windows</span>
+        <p class="hint">Launches Sotto at sign-in so dictation is available
+          without opening anything.</p>
+      </div>
+      <div class="field-control">
+        <button class="key" id="btnStartup">Off</button>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field-label">
+        <span class="legend">Recording indicator</span>
+        <p class="hint">Floats a lamp and level meter above other windows
+          while dictating, so you can see it is listening without switching
+          to Sotto.</p>
+      </div>
+      <div class="field-control">
+        <button class="key" id="btnIndicator">On</button>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field-label">
+        <span class="legend">Speech engine</span>
+        <p class="hint">Started and stopped with the app. Nothing to run by
+          hand.</p>
+      </div>
+      <div class="field-control">
+        <span class="legend" id="engineMode">—</span>
+      </div>
+    </div>
+  </section>
+
+  <div class="advice" id="saveAdvice" hidden></div>
+  <p class="hint restart-note">Changing the speech model or microphone takes
+     effect the next time the engine starts.</p>
+</main>
+
+<footer class="settings-foot">
+  <span class="legend" id="settingsStatus"></span>
+  <div class="tabs-spacer"></div>
+  <button class="key" id="btnClose">Close</button>
+</footer>
+
+<script src="settings.js"></script>
+</body>
+</html>

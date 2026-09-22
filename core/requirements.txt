@@ -1,0 +1,12 @@
+# Core runtime. Install into a Python 3.11 venv (3.13 wheels lag behind).
+faster-whisper>=1.1.0
+sounddevice>=0.4.6
+numpy>=1.26,<3
+
+# CUDA runtime libraries for CTranslate2 on Windows. Without these
+# faster-whisper falls back to CPU (or fails to load cuDNN).
+nvidia-cublas-cu12>=12.4
+nvidia-cudnn-cu12>=9.1
+
+# High-quality resampling: audio interfaces run at 44.1/48k, Whisper wants 16k.
+soxr>=0.5

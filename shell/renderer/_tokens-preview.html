@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sotto — Design Tokens</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="tokens.css">
+<style>
+/* Proving sheet only. Not shipped. Every value below is a token. */
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: var(--font-legend);
+  font-size: var(--text-base);
+  line-height: var(--leading-body);
+  padding: var(--space-6);
+  -webkit-font-smoothing: antialiased;
+}
+.sheet { max-width: 1080px; margin: 0 auto; }
+
+.legend {
+  font-size: var(--text-legend);
+  text-transform: uppercase;
+  letter-spacing: var(--track-legend);
+  color: var(--c-text-mute);
+  font-weight: var(--weight-medium);
+}
+.micro {
+  font-size: var(--text-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--track-legend);
+  color: var(--c-text-mute);
+}
+
+header {
+  display:flex; align-items:flex-end; justify-content:space-between;
+  padding-bottom: var(--space-4);
+  border-bottom: var(--line-seam);
+  margin-bottom: var(--space-2);
+}
+header .wordmark {
+  font-size: 20px; font-weight: var(--weight-bold);
+  letter-spacing: 0.32em; text-transform: uppercase;
+  color: var(--c-alum-200);
+}
+.rule-lit { height:1px; background: var(--c-edge-lit); margin-bottom: var(--space-6); }
+
+section { margin-bottom: var(--space-7); }
+h2 {
+  font-size: var(--text-legend); text-transform: uppercase;
+  letter-spacing: var(--track-legend); color: var(--c-alum-300);
+  font-weight: var(--weight-bold);
+  padding-bottom: var(--space-2); margin-bottom: var(--space-4);
+  border-bottom: var(--line-trim);
+}
+.note { font-size: var(--text-sm); color: var(--c-text-mute); margin-top: var(--space-3); max-width: 70ch; }
+
+/* ---- panels ---- */
+.panel {
+  background: var(--c-panel);
+  background-image: var(--tex-matte);
+  border-radius: var(--radius-chamfer);
+  box-shadow: var(--shade-panel);
+  padding: var(--space-4);
+}
+.grid { display:grid; gap: var(--space-3); }
+.g4 { grid-template-columns: repeat(4, 1fr); }
+.g5 { grid-template-columns: repeat(5, 1fr); }
+.g2 { grid-template-columns: repeat(2, 1fr); }
+
+/* ---- colour chips ---- */
+.chip { border-radius: var(--radius-chamfer); overflow:hidden; box-shadow: var(--shade-raised); }
+.chip .well { height: 58px; border-bottom: var(--line-seam); }
+.chip .meta { padding: var(--space-2); background: var(--c-chassis-800); }
+.chip code { font-family: var(--font-mono); font-size: var(--text-micro); color: var(--c-text-mute); display:block; }
+.chip .nm { font-size: var(--text-micro); text-transform:uppercase; letter-spacing: var(--track-legend); color: var(--c-text-dim); }
+
+/* ---- type specimens ---- */
+.spec { display:flex; align-items:baseline; gap: var(--space-4); padding: var(--space-2) 0; border-bottom: 1px solid rgba(255,255,255,.04); }
+.spec .tag { width: 130px; flex:none; }
+.t-micro   { font-size: var(--text-micro);   text-transform:uppercase; letter-spacing: var(--track-legend); }
+.t-legend  { font-size: var(--text-legend);  text-transform:uppercase; letter-spacing: var(--track-legend); }
+.t-sm      { font-size: var(--text-sm); }
+.t-base    { font-size: var(--text-base); }
+.t-lg      { font-size: var(--text-lg); font-weight: var(--weight-medium); }
+.t-counter { font-family: var(--font-segment); font-size: var(--text-counter); color: var(--c-vu-amber); letter-spacing: 0.06em; }
+
+/* ---- depth demos ---- */
+.surf { height: 76px; display:grid; place-items:center; border-radius: var(--radius-chamfer); }
+.surf.raised  { background: var(--c-surface); background-image: var(--tex-matte);   box-shadow: var(--shade-raised); }
+.surf.inset   { background: var(--c-chassis-900);                                    box-shadow: var(--shade-inset); }
+.surf.pressed { background: var(--c-chassis-600); box-shadow: var(--shade-pressed); }
+.surf.brushed { background: var(--c-alum-500); background-image: var(--tex-brushed); box-shadow: var(--shade-raised); }
+
+/* ---- transport keys ---- */
+.transport { display:flex; gap: var(--space-2); align-items:center; }
+.key {
+  font-family: var(--font-legend);
+  font-size: var(--text-legend); text-transform:uppercase;
+  letter-spacing: var(--track-legend); font-weight: var(--weight-medium);
+  color: var(--c-bone-200);
+  background: var(--c-chassis-500); background-image: var(--tex-matte);
+  border: none; border-radius: var(--radius-moulded);
+  box-shadow: var(--shade-raised);
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+  transition: transform var(--dur-key) var(--ease-key),
+              box-shadow var(--dur-key) var(--ease-key);
+}
+.key:active, .key.is-down {
+  transform: translateY(1px);
+  box-shadow: var(--shade-pressed);
+  color: var(--c-bone-100);
+}
+.key.rec { color: var(--c-record-lit); }
+
+/* ---- record lamp ---- */
+.lamp-row { display:flex; align-items:center; gap: var(--space-3); }
+.lamp {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--c-record-dim);
+  box-shadow: inset 0 1px 1px rgba(0,0,0,.7);
+  transition: background var(--dur-lamp) var(--ease-key), box-shadow var(--dur-lamp) var(--ease-key);
+}
+.lamp.on { background: var(--c-record-lit); box-shadow: var(--shade-lamp), inset 0 1px 1px rgba(0,0,0,.3); }
+
+/* ---- meter well ---- */
+.meter-well {
+  background: var(--c-chassis-900);
+  box-shadow: var(--shade-inset);
+  border-radius: var(--radius-chamfer);
+  padding: var(--space-3);
+}
+canvas { display:block; width:100%; }
+
+
+/* ---- revision B: readout, ladder, hardware ---- */
+.readout {
+  position: relative;
+  background: var(--c-readout-bg);
+  box-shadow: var(--shade-well);
+  border-radius: var(--radius-chamfer);
+  padding: var(--space-4) var(--space-5);
+  overflow: hidden;
+}
+.readout::after {
+  content: ""; position: absolute; inset: 0;
+  background: var(--tex-scanline); pointer-events: none;
+}
+.readout .stack { position: relative; display: inline-block; }
+.readout .ghost {
+  font-family: var(--font-segment); font-size: var(--text-counter);
+  color: var(--c-readout-ghost); letter-spacing: 0.06em;
+}
+.readout .live {
+  position: absolute; left: 0; top: 0;
+  font-family: var(--font-segment); font-size: var(--text-counter);
+  color: var(--c-readout-amber); letter-spacing: 0.06em;
+  text-shadow: var(--shade-readout);
+}
+
+.ladder { display: flex; gap: var(--led-seg-gap); align-items: center; }
+.ladder i {
+  width: var(--led-seg-w); height: var(--led-seg-h);
+  background: var(--c-led-off);
+  border-radius: 1px;
+  box-shadow: inset 0 1px 1px rgba(0,0,0,.6);
+}
+
+.plate {
+  background: var(--c-alum-500); background-image: var(--tex-brushed);
+  box-shadow: var(--shade-raised); border-radius: var(--radius-chamfer);
+  padding: var(--space-4); position: relative;
+}
+.engraved {
+  color: var(--c-chassis-900); text-shadow: var(--shade-engraved);
+  font-size: var(--text-legend); text-transform: uppercase;
+  letter-spacing: var(--track-legend); font-weight: var(--weight-bold);
+}
+.screw {
+  width: var(--size-screw); height: var(--size-screw); border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--c-alum-300), var(--c-alum-600) 70%);
+  box-shadow: inset 0 -1px 1px rgba(0,0,0,.5), 0 1px 1px rgba(0,0,0,.4);
+  position: relative; flex: none;
+}
+.screw::after {
+  content: ""; position: absolute; left: 15%; right: 15%; top: 50%;
+  height: 2px; margin-top: -1px; background: var(--c-chassis-900);
+  transform: rotate(28deg); border-radius: 1px;
+}
+.vent {
+  height: 34px; background: var(--c-chassis-700);
+  background-image: var(--tex-vent);
+  box-shadow: var(--shade-inset); border-radius: var(--radius-chamfer);
+}
+.knob {
+  width: 62px; height: 62px; border-radius: 50%; flex: none;
+  background: var(--c-alum-500); background-image: var(--tex-knurl);
+  box-shadow: var(--shade-raised), inset 0 -2px 4px rgba(0,0,0,.45);
+  position: relative;
+}
+.knob::after {
+  content: ""; position: absolute; left: 50%; top: 7px; width: 2px; height: 15px;
+  margin-left: -1px; background: var(--c-chassis-900); border-radius: 1px;
+}
+.knob-cap {
+  position: absolute; inset: 14px; border-radius: 50%;
+  background: var(--c-chassis-600); background-image: var(--tex-matte);
+  box-shadow: inset 0 1px 0 var(--c-edge-lit), 0 1px 2px rgba(0,0,0,.5);
+}
+
+/* ---- scale rails ---- */
+.rail { display:flex; align-items:flex-end; gap: var(--space-2); }
+.rail .bar { background: var(--c-alum-500); border-radius: var(--radius-chamfer); box-shadow: var(--shade-raised); }
+.rad { height:52px; background: var(--c-alum-500); background-image: var(--tex-brushed); box-shadow: var(--shade-raised); display:grid; place-items:end center; padding-bottom:4px; }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <header>
+    <div>
+      <div class="wordmark">Sotto</div>
+      <div class="micro" style="margin-top:4px">Design tokens — revision A</div>
+    </div>
+    <div class="micro">Portable field recorder / cassette deck</div>
+  </header>
+  <div class="rule-lit"></div>
+
+  <!-- ============ COLOUR ============ -->
+  <section>
+    <h2>Colour — chassis</h2>
+    <div class="grid g5">
+      <div class="chip"><div class="well" style="background:var(--c-chassis-900)"></div><div class="meta"><span class="nm">Recess</span><code>--c-chassis-900</code></div></div>
+      <div class="chip"><div class="well" style="background:var(--c-chassis-800)"></div><div class="meta"><span class="nm">Body</span><code>--c-chassis-800</code></div></div>
+      <div class="chip"><div class="well" style="background:var(--c-chassis-700)"></div><div class="meta"><span class="nm">Panel</span><code>--c-chassis-700</code></div></div>
+      <div class="chip"><div class="well" style="background:var(--c-chassis-600)"></div><div class="meta"><span class="nm">Control</span><code>--c-chassis-600</code></div></div>
+      <div class="chip"><div class="well" style="background:var(--c-chassis-500)"></div><div class="meta"><span class="nm">Lifted</span><code>--c-chassis-500</code></div></div>
+    </div>
+
+    <h2 style="margin-top:var(--space-5)">Colour — aluminium &amp; bone</h2>
+    <div class="grid g5">
+      <div class="chip"><div class="well" style="background:var(--c-alum-600)"></div><div class="meta"><span class="nm">Bevel</span><code>--c-alum-600</code></div></div>
+      <div class="chip"><div class="well" style="background:var(--c-alum-500);background-image:var(--tex-brushed)"></div><div class="meta"><span class="nm">Brushed</span><code>--c-alum-500</code></div></div>
+      <div class="chip"><div class="well" style="background:var(--c-alum-300)"></div><div class="meta"><span class="nm">Highlight</span><code>--c-alum-300</code></div></div>
+      <div class="chip"><div class="well" style="background:var(--c-bone-100)"></div><div class="meta"><span class="nm">Legend</span><code>--c-bone-100</code></div></div>
+      <div class="chip"><div class="well" style="background:var(--c-bone-300)"></div><div class="meta"><span class="nm">Muted</span><code>--c-bone-300</code></div></div>
+    </div>
+
+    <h2 style="margin-top:var(--space-5)">Colour — accent &amp; instrumentation</h2>
+    <div class="grid g5">
+      <div class="chip"><div class="well" style="background:var(--c-record)"></div><div class="meta"><span class="nm">Record</span><code>--c-record</code></div></div>
+      <div class="chip"><div class="well" style="background:var(--c-record-lit)"></div><div class="meta"><span class="nm">Lamp lit</span><code>--c-record-lit</code></div></div>
+      <div class="chip"><div class="well" style="background:var(--c-vu-green)"></div><div class="meta"><span class="nm">VU green</span><code>--c-vu-green</code></div></div>
+      <div class="chip"><div class="well" style="background:var(--c-vu-amber)"></div><div class="meta"><span class="nm">VU amber</span><code>--c-vu-amber</code></div></div>
+      <div class="chip"><div class="well" style="background:var(--c-vu-face)"></div><div class="meta"><span class="nm">Meter face</span><code>--c-vu-face</code></div></div>
+    </div>
+    <p class="note">One accent only. Red is reserved for the record lamp and meter peak — it never appears on a button, a link or a focus ring. Amber and green exist solely inside instrumentation.</p>
+  </section>
+
+  <!-- ============ TYPE ============ -->
+  <section>
+    <h2>Type scale</h2>
+    <div class="panel">
+      <div class="spec"><span class="tag legend">micro / 9</span><span class="t-micro">Peak hold · dB scale · unit suffix</span></div>
+      <div class="spec"><span class="tag legend">legend / 10</span><span class="t-legend">Input level — mic / line</span></div>
+      <div class="spec"><span class="tag legend">sm / 12</span><span class="t-sm">14:32 · 2.6 s · fr · 4 corrections applied</span></div>
+      <div class="spec"><span class="tag legend">base / 13</span><span class="t-base">The meeting is on Wednesday at three.</span></div>
+      <div class="spec"><span class="tag legend">lg / 15</span><span class="t-lg">Transcriptions</span></div>
+      <div class="spec" style="border:none"><span class="tag legend">counter / 30</span><span class="t-counter">00:02.6</span></div>
+    </div>
+    <p class="note">Two families, both bundled with the app: <strong>Archivo</strong> for every printed legend, <strong>DSEG7 Classic</strong> for the counter so it reads as a real LCD. Legends are uppercase at 0.14em tracking — the silkscreen look comes from tracking and size, not from a display face.</p>
+  </section>
+
+  <!-- ============ DEPTH ============ -->
+  <section>
+    <h2>Depth &amp; material</h2>
+    <div class="grid g4">
+      <div><div class="surf raised"><span class="legend">Raised</span></div><code class="micro">--shade-raised</code></div>
+      <div><div class="surf inset"><span class="legend">Inset well</span></div><code class="micro">--shade-inset</code></div>
+      <div><div class="surf pressed"><span class="legend">Pressed</span></div><code class="micro">--shade-pressed</code></div>
+      <div><div class="surf brushed"><span class="legend" style="color:var(--c-chassis-900)">Brushed</span></div><code class="micro">--tex-brushed</code></div>
+    </div>
+    <p class="note">Every raised part carries a lit top chamfer and a dark bottom one. That pair — not a border — is what makes two surfaces read as separate pieces of hardware.</p>
+  </section>
+
+  <!-- ============ CONTROLS ============ -->
+  <section>
+    <h2>Controls</h2>
+    <div class="panel">
+      <div class="transport">
+        <button class="key rec" id="btnRec">● Record</button>
+        <button class="key">■ Stop</button>
+        <button class="key is-down">Dictionary</button>
+        <div class="lamp-row" style="margin-left:var(--space-5)">
+          <span class="lamp on"></span><span class="legend">Rec</span>
+        </div>
+        <div class="lamp-row" style="margin-left:var(--space-3)">
+          <span class="lamp"></span><span class="legend">Pause</span>
+        </div>
+      </div>
+    </div>
+    <p class="note">Buttons travel 1px and swap their cast shadow for an inset one. Third key shown latched down. No hover tint, no colour fill — a key looks pressed because it <em>is</em> pressed.</p>
+  </section>
+
+  <!-- ============ VU ============ -->
+  <section>
+    <h2>VU meter — live ballistics</h2>
+    <div class="meter-well">
+      <canvas id="vu" height="360"></canvas>
+    </div>
+    <p class="note">Driven by a synthetic speech envelope here; the real one takes RMS from the engine. Ballistics are instrument constants, not taste: 12&nbsp;ms attack, 300&nbsp;ms decay, 900&nbsp;ms peak hold. The needle is integrated per frame on canvas — nothing re-renders on audio callbacks.</p>
+  </section>
+
+  <!-- ============ SPACING / RADIUS ============ -->
+  <section>
+    <h2>Spacing &amp; radius</h2>
+    <div class="grid g2">
+      <div class="panel">
+        <div class="legend" style="margin-bottom:var(--space-3)">Spacing — 4px base</div>
+        <div class="rail" id="rail"></div>
+      </div>
+      <div class="panel">
+        <div class="legend" style="margin-bottom:var(--space-3)">Radius — machined chamfer</div>
+        <div class="grid" style="grid-template-columns:repeat(3,1fr)">
+          <div><div class="rad" style="border-radius:var(--radius-chamfer)"><span class="micro" style="color:var(--c-chassis-900)">2 chamfer</span></div></div>
+          <div><div class="rad" style="border-radius:var(--radius-key)"><span class="micro" style="color:var(--c-chassis-900)">3 key</span></div></div>
+          <div><div class="rad" style="border-radius:var(--radius-moulded)"><span class="micro" style="color:var(--c-chassis-900)">5 moulded</span></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============ REVISION B ============ -->
+  <section>
+    <h2>Readout well &mdash; LED counter</h2>
+    <div class="readout">
+      <div class="stack">
+        <span class="ghost">88:88.8</span>
+        <span class="live" id="ctr">00:02.6</span>
+      </div>
+    </div>
+    <p class="note">Unlit segments stay visible behind the value, the way a real
+      seven-segment display does &mdash; the ghost <code style="font-family:var(--font-mono)">88:88.8</code>
+      is always there. Fine horizontal ruling across the face reads as the filter
+      in front of the LEDs. The bloom is 5px and lives inside the recessed well;
+      it never touches type outside one.</p>
+  </section>
+
+  <section>
+    <h2>LED ladder &mdash; peak indicator</h2>
+    <div class="panel">
+      <div class="ladder" id="ladder"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:var(--space-2);max-width:212px">
+        <span class="micro">-20</span><span class="micro">-10</span>
+        <span class="micro">-3</span><span class="micro">0</span><span class="micro">+6</span>
+      </div>
+    </div>
+    <p class="note">Runs off the same envelope as the needle. Green to &minus;3,
+      amber to 0, red above. The floating segment is peak hold &mdash; same
+      ballistics constants as the needle.</p>
+  </section>
+
+  <section>
+    <h2>Hardware</h2>
+    <div class="grid g2">
+      <div class="plate">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <span class="engraved">Input &middot; Mic / Line</span>
+          <span class="screw"></span>
+        </div>
+        <div style="display:flex;gap:var(--space-5);align-items:center;margin-top:var(--space-5)">
+          <div class="knob"><div class="knob-cap"></div></div>
+          <div>
+            <div class="engraved">Level</div>
+            <div class="micro" style="color:var(--c-chassis-900);opacity:.55;margin-top:4px">0 &mdash; 10</div>
+          </div>
+        </div>
+        <div style="margin-top:var(--space-4)"><span class="screw"></span></div>
+      </div>
+      <div class="panel">
+        <div class="legend" style="margin-bottom:var(--space-3)">Ventilation</div>
+        <div class="vent"></div>
+        <div class="legend" style="margin:var(--space-4) 0 var(--space-3)">Engraved vs printed</div>
+        <div class="plate" style="padding:var(--space-3)">
+          <span class="engraved">Stamped into metal</span>
+        </div>
+        <div style="margin-top:var(--space-2);padding:var(--space-3);background:var(--c-chassis-600);border-radius:var(--radius-chamfer);box-shadow:var(--shade-raised)">
+          <span class="legend" style="color:var(--c-bone-100)">Printed on plastic</span>
+        </div>
+      </div>
+    </div>
+    <p class="note">Fasteners and vents sit at real structural positions &mdash;
+      corners of a plate, above a heat source &mdash; never repeated as pattern.
+      An engraved legend inverts its shadow against a printed one, which is what
+      separates a metal plate from a plastic panel.</p>
+  </section>
+</div>
+
+<script>
+// ---- spacing rail ----
+const rail = document.getElementById('rail');
+[['1',4],['2',8],['3',12],['4',16],['5',24],['6',32],['7',48],['8',64]].forEach(([n,px]) => {
+  const w = document.createElement('div');
+  w.style.textAlign = 'center';
+  const b = document.createElement('div');
+  b.className = 'bar';
+  b.style.width = px + 'px'; b.style.height = px + 'px';
+  const l = document.createElement('div');
+  l.className = 'micro'; l.textContent = n; l.style.marginTop = '4px';
+  w.appendChild(b); w.appendChild(l); rail.appendChild(w);
+});
+
+// ---- VU meter ----
+// Needle position is integrated with separate attack/decay constants so it
+// carries weight, the way a moving-coil movement does. Peak indicator holds
+// then falls back slowly.
+const cv = document.getElementById('vu');
+const ctx = cv.getContext('2d');
+const css = getComputedStyle(document.documentElement);
+const tok = n => css.getPropertyValue(n).trim();
+const ATTACK = parseFloat(tok('--vu-attack-ms'));
+const DECAY  = parseFloat(tok('--vu-decay-ms'));
+const HOLD   = parseFloat(tok('--vu-peak-hold-ms'));
+const FALL   = parseFloat(tok('--vu-peak-fall-ms'));
+
+let needle = 0, peak = 0, peakAt = 0, last = performance.now(), t = 0;
+
+function size() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.parentElement.clientWidth - 24;
+  cv.style.height = '180px';
+  cv.width = Math.round(w * dpr);
+  cv.height = Math.round(180 * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { w, h: 180 };
+}
+let dim = size();
+window.addEventListener('resize', () => { dim = size(); });
+
+// Synthetic speech: bursts of energy with pauses, plus transients.
+function envelope(ms) {
+  const phrase = (ms % 4200) / 4200;
+  if (phrase > 0.78) return 0.02;
+  const syll = Math.abs(Math.sin(ms / 120));
+  const body = 0.42 + 0.34 * Math.sin(ms / 900);
+  const hit  = (ms % 1500 < 60) ? 0.28 : 0;
+  return Math.min(1, body * syll + hit + 0.05);
+}
+
+function draw(now) {
+  const dt = Math.min(64, now - last); last = now; t += dt;
+  const target = envelope(t);
+
+  // one-pole integrator, separate up/down constants
+  const k = target > needle ? 1 - Math.exp(-dt / ATTACK) : 1 - Math.exp(-dt / DECAY);
+  needle += (target - needle) * k;
+
+  if (needle >= peak) { peak = needle; peakAt = t; }
+  else if (t - peakAt > HOLD) peak = Math.max(needle, peak - dt / FALL);
+
+  const { w, h } = dim;
+  const pad = 14;
+  ctx.clearRect(0, 0, w, h);
+
+  // faceplate
+  ctx.fillStyle = tok('--c-vu-face');
+  ctx.fillRect(0, 0, w, h);
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, 'rgba(0,0,0,0.10)');
+  g.addColorStop(0.35, 'rgba(0,0,0,0)');
+  g.addColorStop(1, 'rgba(0,0,0,0.16)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+
+  const cx = w / 2, cy = h + 34, R = h + 4;
+  const A0 = -Math.PI * 0.78, A1 = -Math.PI * 0.22;
+  const ang = v => A0 + (A1 - A0) * v;
+
+  // scale arc
+  ctx.lineWidth = 1.5; ctx.strokeStyle = tok('--c-vu-ink');
+  ctx.beginPath(); ctx.arc(cx, cy, R - pad, A0, A1); ctx.stroke();
+
+  // red overload band from 0VU
+  ctx.lineWidth = 4; ctx.strokeStyle = tok('--c-vu-peak');
+  ctx.beginPath(); ctx.arc(cx, cy, R - pad - 5, ang(0.72), A1); ctx.stroke();
+
+  // ticks + legends
+  const marks = [[0,'-20'],[0.18,'-10'],[0.38,'-5'],[0.56,'-3'],[0.72,'0'],[0.86,'+3'],[1,'+6']];
+  ctx.font = '600 9px ' + tok('--font-legend');
+  ctx.textAlign = 'center'; ctx.fillStyle = tok('--c-vu-ink');
+  marks.forEach(([v, label]) => {
+    const a = ang(v), s = Math.cos(a), c2 = Math.sin(a);
+    ctx.lineWidth = 1.5; ctx.strokeStyle = tok('--c-vu-ink');
+    ctx.beginPath();
+    ctx.moveTo(cx + s * (R - pad), cy + c2 * (R - pad));
+    ctx.lineTo(cx + s * (R - pad - 9), cy + c2 * (R - pad - 9));
+    ctx.stroke();
+    ctx.fillText(label, cx + s * (R - pad - 20), cy + c2 * (R - pad - 20) + 3);
+  });
+  ctx.font = '600 8px ' + tok('--font-legend');
+  ctx.fillText('V U', cx, cy - R + 74);
+
+  // peak indicator
+  const pa = ang(peak);
+  ctx.strokeStyle = tok('--c-vu-peak'); ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(cx + Math.cos(pa) * (R - pad - 1), cy + Math.sin(pa) * (R - pad - 1));
+  ctx.lineTo(cx + Math.cos(pa) * (R - pad - 8), cy + Math.sin(pa) * (R - pad - 8));
+  ctx.stroke();
+
+  // needle
+  const na = ang(needle);
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,0,0,0.16)'; ctx.lineWidth = 3.5; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx + 2, cy + 2);
+  ctx.lineTo(cx + Math.cos(na) * (R - pad - 12) + 2, cy + Math.sin(na) * (R - pad - 12) + 2);
+  ctx.stroke();
+  ctx.strokeStyle = tok('--c-vu-needle'); ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx, cy);
+  ctx.lineTo(cx + Math.cos(na) * (R - pad - 12), cy + Math.sin(na) * (R - pad - 12));
+  ctx.stroke();
+  ctx.restore();
+
+  // pivot
+  ctx.fillStyle = tok('--c-chassis-800');
+  ctx.beginPath(); ctx.arc(cx, cy, 9, Math.PI, 0); ctx.fill();
+
+  paintExtras(dt);
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+
+
+// ---- LED ladder + counter ----
+const LADDER_N = 18;
+const ladder = document.getElementById('ladder');
+const segs = [];
+for (let i = 0; i < LADDER_N; i++) {
+  const el = document.createElement('i');
+  segs.push(el); ladder.appendChild(el);
+}
+function segColour(i) {
+  const v = i / (LADDER_N - 1);
+  if (v > 0.86) return tok('--c-vu-peak');
+  if (v > 0.72) return tok('--c-vu-amber');
+  return tok('--c-vu-green');
+}
+const ctrEl = document.getElementById('ctr');
+let ctrT = 0;
+function paintExtras(dt) {
+  const lit = Math.round(needle * LADDER_N);
+  const peakSeg = Math.round(peak * LADDER_N);
+  for (let i = 0; i < LADDER_N; i++) {
+    const on = i < lit || i === peakSeg - 1;
+    const c = segColour(i);
+    segs[i].style.background = on ? c : tok('--c-led-off');
+    segs[i].style.boxShadow = on
+      ? '0 0 4px ' + c + ', inset 0 1px 1px rgba(0,0,0,.35)'
+      : 'inset 0 1px 1px rgba(0,0,0,.6)';
+  }
+  ctrT += dt;
+  const s = (ctrT / 1000) % 600;
+  ctrEl.textContent = String(Math.floor(s / 60)).padStart(2, '0') + ':' +
+                      (s % 60).toFixed(1).padStart(4, '0');
+}
+
+// record lamp blink tied to the button
+const rec = document.getElementById('btnRec');
+rec.addEventListener('click', () => document.querySelectorAll('.lamp').forEach(l => l.classList.toggle('on')));
+</script>
+</body>
+</html>
